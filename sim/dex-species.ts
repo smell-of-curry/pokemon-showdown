@@ -131,12 +131,18 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 	declare readonly evoCondition?: string;
 	/** Evolution item. falsy if doesn't evolve. */
 	declare readonly evoItem?: string;
+	/** Evolution gender. */
+   declare readonly evoGender?: "M" | "F";
 	/** Evolution move. falsy if doesn't evolve. */
 	readonly evoMove?: string;
+	/** Evolution move use times. Pokemon Must use the moves this amount of times */
+   readonly evoMoveUseTimes?: number;
 	/** Region required to be in for evolution. falsy if doesn't evolve. */
 	readonly evoRegion?: 'Alola' | 'Galar';
 	/** Evolution level. falsy if doesn't evolve. */
 	readonly evoLevel?: number;
+	/** Time required for the evolution. */
+   readonly evoTime?: "day" | "night";
 	/** Is NFE? True if this Pokemon can evolve (Mega evolution doesn't count). */
 	readonly nfe: boolean;
 	/** Egg groups. */
