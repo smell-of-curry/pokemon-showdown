@@ -726,7 +726,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 				if (target.hp > 0) {
 					target.heal(target.maxhp);
 					target.clearStatus();
-					this.add('-heal', target, target.getHealth, '[from] move: Healing Wish');
+					this.add('-heal', target, target.details, target.getHealth, '[from] move: Healing Wish');
 					target.side.removeSlotCondition(target, 'healingwish');
 					target.lastMove = this.lastMove;
 				} else {
@@ -910,7 +910,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 					for (const moveSlot of target.moveSlots) {
 						moveSlot.pp = moveSlot.maxpp;
 					}
-					this.add('-heal', target, target.getHealth, '[from] move: Lunar Dance');
+					this.add('-heal', target, target.details, target.getHealth, '[from] move: Lunar Dance');
 					target.side.removeSlotCondition(target, 'lunardance');
 					target.lastMove = this.lastMove;
 				} else {
@@ -1786,7 +1786,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 				if (!target.fainted) {
 					const source = this.effectState.source;
 					const damage = this.heal(target.baseMaxhp / 2, target, target);
-					if (damage) this.add('-heal', target, target.getHealth, '[from] move: Wish', '[wisher] ' + source.name);
+					if (damage) this.add('-heal', target, target.details, target.getHealth, '[from] move: Wish', '[wisher] ' + source.name);
 				}
 			},
 		},

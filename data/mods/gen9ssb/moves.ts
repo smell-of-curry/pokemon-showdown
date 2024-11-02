@@ -183,7 +183,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 			onSwap(target) {
 				if (!target.fainted && (target.hp < target.maxhp)) {
 					target.heal(target.maxhp / 3);
-					this.add('-heal', target, target.getHealth, '[from] move: Free Switch Button');
+					this.add('-heal', target, target.details, target.getHealth, '[from] move: Free Switch Button');
 					target.side.removeSlotCondition(target, 'freeswitchbutton');
 				}
 			},

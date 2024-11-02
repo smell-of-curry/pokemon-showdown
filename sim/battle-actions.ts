@@ -1243,7 +1243,7 @@ export class BattleActions {
 						didAnything = this.combineResults(didAnything, null);
 						continue;
 					}
-					this.battle.add('-heal', target, target.getHealth);
+					this.battle.add('-heal', target, target.details, target.getHealth);
 					didSomething = true;
 				}
 				if (moveData.status) {
@@ -1955,7 +1955,7 @@ export class BattleActions {
 			const newMaxHP = pokemon.baseMaxhp;
 			pokemon.hp = newMaxHP - (pokemon.maxhp - pokemon.hp);
 			pokemon.maxhp = newMaxHP;
-			this.battle.add('-heal', pokemon, pokemon.getHealth, '[silent]');
+			this.battle.add('-heal', pokemon, pokemon.details, pokemon.getHealth, '[silent]');
 		}
 		this.battle.runEvent('AfterTerastallization', pokemon);
 	}

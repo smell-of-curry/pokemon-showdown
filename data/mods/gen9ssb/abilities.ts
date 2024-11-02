@@ -765,7 +765,7 @@ export const Abilities: import('../../../sim/dex-abilities').ModdedAbilityDataTa
 			for (const ally of pokemon.side.pokemon) {
 				if (!ally.hp || ally === pokemon) continue;
 				if (ally.heal(this.modify(ally.baseMaxhp, pokemon.hp > pokemon.maxhp / 4 ? 0.05 : 0.1))) {
-					this.add('-heal', ally, ally.getHealth, '[from] ability: Coalescence', '[of] ' + pokemon);
+					this.add('-heal', ally, ally.details, ally.getHealth, '[from] ability: Coalescence', '[of] ' + pokemon);
 				}
 			}
 		},
@@ -1901,7 +1901,7 @@ export const Abilities: import('../../../sim/dex-abilities').ModdedAbilityDataTa
 					if (pokemon && !pokemon.fainted) {
 						const damage = this.heal(this.effectState.hp, pokemon, pokemon);
 						if (damage) {
-							this.add('-heal', pokemon, pokemon.getHealth, '[from] move: Wish', '[wisher] ' + this.effectState.source.name);
+							this.add('-heal', pokemon, pokemon.details, pokemon.getHealth, '[from] move: Wish', '[wisher] ' + this.effectState.source.name);
 						}
 					}
 				},
@@ -2891,7 +2891,7 @@ export const Abilities: import('../../../sim/dex-abilities').ModdedAbilityDataTa
 						this.add('-message', `${pokemon.name} dug through its Treasure Bag and found a Reviver Seed!`);
 						pokemon.m.reviverSeedTriggered = true;
 						pokemon.hp = Math.floor(pokemon.maxhp / 2);
-						this.add('-heal', pokemon, pokemon.getHealth, '[silent]');
+						this.add('-heal', pokemon, pokemon.details, pokemon.getHealth, '[silent]');
 						this.add('-message', `${pokemon.name} was revived!`);
 						return 0;
 					} else {

@@ -1255,7 +1255,7 @@ export const Conditions: {[id: IDEntry]: ModdedConditionData & {innateName?: str
 				const newMaxHP = source.volatiles['dynamax'] ? (2 * source.baseMaxhp) : source.baseMaxhp;
 				source.hp = newMaxHP - (source.maxhp - source.hp);
 				source.maxhp = newMaxHP;
-				this.add('-heal', source, source.getHealth, '[silent]');
+				this.add('-heal', source, source.details, source.getHealth, '[silent]');
 			}
 		},
 		onUpdate(pokemon) {
