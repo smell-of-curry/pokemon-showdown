@@ -67,7 +67,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				if (this.modifiedStats) this.modifiedStats[statName] = pokemon.modifiedStats![statName]; // Gen 1: Copy modified stats.
 			}
 			this.moveSlots = [];
-			this.set.ivs = (this.battle.gen >= 5 ? this.set.ivs : pokemon.set.ivs);
+			this.pokemonSet.ivs = (this.battle.gen >= 5 ? this.pokemonSet.ivs : pokemon.pokemonSet.ivs);
 			this.hpType = (this.battle.gen >= 5 ? this.hpType : pokemon.hpType);
 			this.hpPower = (this.battle.gen >= 5 ? this.hpPower : pokemon.hpPower);
 			this.timesAttacked = pokemon.timesAttacked;
@@ -170,7 +170,7 @@ export const Scripts: ModdedBattleScriptsData = {
 			if (isPermanent) {
 				this.baseSpecies = rawSpecies;
 				this.details = species.name + (this.level === 100 ? '' : ', L' + this.level) +
-					(this.gender === '' ? '' : ', ' + this.gender) + (this.set.shiny ? ', shiny' : '');
+					(this.gender === '' ? '' : ', ' + this.gender) + (this.pokemonSet.shiny ? ', shiny' : '');
 				this.battle.add('detailschange', this, (this.illusion || this).details);
 				if (source.effectType === 'Item') {
 					this.canTerastallize = null; // National Dex behavior

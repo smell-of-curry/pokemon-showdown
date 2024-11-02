@@ -69,7 +69,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				if (!species) continue;
 				pokemon.baseSpecies = rawSpecies;
 				pokemon.details = species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
+					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 				pokemon.ability = this.toID(species.abilities['0']);
 				pokemon.baseAbility = pokemon.ability;
 			}
@@ -122,7 +122,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				if (!species) continue;
 				pokemon.baseSpecies = rawSpecies;
 				pokemon.details = species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
+					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 				pokemon.ability = this.toID(species.abilities['0']);
 				pokemon.baseAbility = pokemon.ability;
 

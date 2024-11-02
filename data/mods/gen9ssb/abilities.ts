@@ -1750,9 +1750,9 @@ export const Abilities: import('../../../sim/dex-abilities').ModdedAbilityDataTa
 		onDamage(damage, target, source, effect) {
 			target.m.damageTaken ??= 0;
 			target.m.damageTaken += damage;
-			if (target.set && !target.set.shiny) {
+			if (target.pokemonSet && !target.pokemonSet.shiny) {
 				if (target.m.damageTaken >= 420) {
-					target.set.shiny = true;
+					target.pokemonSet.shiny = true;
 					if (!target.hp) {
 						return this.add(`c:|${getName('PartMan')}|MWAHAHA NOW YOU - oh I'm dead`);
 					}
@@ -1761,17 +1761,17 @@ export const Abilities: import('../../../sim/dex-abilities').ModdedAbilityDataTa
 					this.add('-clearboost', target);
 					this.boost({atk: 1, def: -1, spa: 1, spd: -1, spe: 1});
 					const details = target.species.name + (target.level === 100 ? '' : ', L' + target.level) +
-						(target.gender === '' ? '' : ', ' + target.gender) + (target.set.shiny ? ', shiny' : '');
+						(target.gender === '' ? '' : ', ' + target.gender) + (target.pokemonSet.shiny ? ', shiny' : '');
 					target.details = details;
 					this.add('replace', target, details);
 				}
 			}
 		},
 		onModifyMove(move, pokemon) {
-			if (pokemon.set.shiny) move.ignoreAbility = true;
+			if (pokemon.pokemonSet.shiny) move.ignoreAbility = true;
 		},
 		onStart(pokemon) {
-			if (!pokemon.set.shiny) {
+			if (!pokemon.pokemonSet.shiny) {
 				this.boost({atk: -1, def: 1, spa: -1, spd: 1});
 			} else {
 				this.boost({atk: 1, def: -1, spa: 1, spd: -1, spe: 1});

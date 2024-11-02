@@ -46,7 +46,7 @@ export class Pokemon {
 	readonly side: Side;
 	readonly battle: Battle;
 
-	readonly set: PokemonSet;
+	readonly pokemonSet: PokemonSet;
 	readonly name: string;
 	readonly fullname: string;
 	readonly level: number;
@@ -288,7 +288,7 @@ export class Pokemon {
 		[key: string]: any,
 	};
 
-	constructor(set: string | AnyObject, side: Side) {
+	constructor(pokemonSet: string | AnyObject, side: Side) {
 		this.side = side;
 		this.battle = side.battle;
 
@@ -297,36 +297,50 @@ export class Pokemon {
 		const pokemonScripts = this.battle.format.pokemon || this.battle.dex.data.Scripts.pokemon;
 		if (pokemonScripts) Object.assign(this, pokemonScripts);
 
-		if (typeof set === 'string') set = {name: set};
+		if (typeof pokemonSet === "string") pokemonSet = { name: pokemonSet };
 
 		this.baseSpecies = this.battle.dex.species.get(set.species || set.name);
 		if (!this.baseSpecies.exists) {
 			throw new Error(`Unidentified species: ${this.baseSpecies.name}`);
 		}
-		this.set = set as PokemonSet;
+		this.pokemonSet = pokemonSet as PokemonSet;
 
 		this.species = this.baseSpecies;
-		if (set.name === set.species || !set.name) {
-			set.name = this.baseSpecies.baseSpecies;
+		if (pokemonSet.name === pokemonSet.species || !pokemonSet.name) {
+			pokemonSet.name = this.baseSpecies.baseSpecies;
 		}
 		this.speciesState = {id: this.species.id};
 
-		this.name = set.name.substr(0, 20);
-		this.fullname = this.side.id + ': ' + this.name;
+		this.name = pokemonSet.name.substr(0, 20);
+		this.fullname = this.side.id + ": " + this.name;
 
-		set.level = this.battle.clampIntRange(set.adjustLevel || set.level || 100, 1, 9999);
-		this.level = set.level;
-		const genders: {[key: string]: GenderName} = {M: 'M', F: 'F', N: 'N'};
-		this.gender = genders[set.gender] || this.species.gender || (this.battle.random() * 2 < 1 ? 'M' : 'F');
-		if (this.gender === 'N') this.gender = '';
-		this.happiness = typeof set.happiness === 'number' ? this.battle.clampIntRange(set.happiness, 0, 255) : 255;
-		this.pokeball = this.set.pokeball || 'pokeball';
-		this.dynamaxLevel = typeof set.dynamaxLevel === 'number' ? this.battle.clampIntRange(set.dynamaxLevel, 0, 10) : 10;
-		this.gigantamax = this.set.gigantamax || false;
+		pokemonSet.level = this.battle.clampIntRange(
+			pokemonSet.adjustLevel || pokemonSet.level || 100,
+			1,
+			9999
+		);
+		this.level = pokemonSet.level;
+		const genders: { [key: string]: GenderName } = { M: "M", F: "F", N: "N" };
+		this.gender =
+			genders[pokemonSet.gender] ||
+			this.species.gender ||
+			(this.battle.random() * 2 < 1 ? "M" : "F");
+		if (this.gender === "N") this.gender = "";
+		this.happiness =
+			typeof pokemonSet.happiness === "number"
+				? this.battle.clampIntRange(pokemonSet.happiness, 0, 255)
+				: 255;
+		this.pokeball = this.pokemonSet.pokeball || "pokeball";
+		this.dynamaxLevel =
+			typeof pokemonSet.dynamaxLevel === "number"
+				? this.battle.clampIntRange(pokemonSet.dynamaxLevel, 0, 10)
+				: 10;
+		this.gigantamax = this.pokemonSet.gigantamax || false;
+		this.uuid = this.pokemonSet.uuid || ""; // COBBLED: uuid
 
 		this.baseMoveSlots = [];
 		this.moveSlots = [];
-		if (!this.set.moves?.length) {
+		if (!this.pokemonSet.moves?.length) {
 			throw new Error(`Set ${this.name} has no moves`);
 		}
 		for (const moveid of this.set.moves) {
@@ -352,42 +366,79 @@ export class Pokemon {
 
 		this.position = 0;
 		let displayedSpeciesName = this.species.name;
-		if (displayedSpeciesName === 'Greninja-Bond') displayedSpeciesName = 'Greninja';
-		this.details = displayedSpeciesName + (this.level === 100 ? '' : ', L' + this.level) +
-			(this.gender === '' ? '' : ', ' + this.gender) + (this.set.shiny ? ', shiny' : '');
+		if (displayedSpeciesName === "Greninja-Bond")
+			displayedSpeciesName = "Greninja";
+		// COBBLED: uuid
+		this.details =
+			displayedSpeciesName +
+			", " +
+			this.uuid +
+			(this.level === 100 ? "" : ", L" + this.level) +
+			(this.gender === "" ? "" : ", " + this.gender) +
+			(this.pokemonSet.shiny ? ", shiny" : "");
 
-		this.status = '';
+		this.status = "";
 		this.statusState = {};
 		this.volatiles = {};
 		this.showCure = undefined;
 
-		if (!this.set.evs) {
-			this.set.evs = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
+		if (!this.pokemonSet.evs) {
+			this.pokemonSet.evs = {
+				hp: 0,
+				atk: 0,
+				def: 0,
+				spa: 0,
+				spd: 0,
+				spe: 0,
+			};
 		}
-		if (!this.set.ivs) {
-			this.set.ivs = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
+		if (!this.pokemonSet.ivs) {
+			this.pokemonSet.ivs = {
+				hp: 31,
+				atk: 31,
+				def: 31,
+				spa: 31,
+				spd: 31,
+				spe: 31,
+			};
 		}
-		const stats: StatsTable = {hp: 31, atk: 31, def: 31, spe: 31, spa: 31, spd: 31};
+		const stats: StatsTable = {
+			hp: 31,
+			atk: 31,
+			def: 31,
+			spe: 31,
+			spa: 31,
+			spd: 31,
+		};
 		let stat: StatID;
 		for (stat in stats) {
-			if (!this.set.evs[stat]) this.set.evs[stat] = 0;
-			if (!this.set.ivs[stat] && this.set.ivs[stat] !== 0) this.set.ivs[stat] = 31;
+			if (!this.pokemonSet.evs[stat]) this.pokemonSet.evs[stat] = 0;
+			if (!this.pokemonSet.ivs[stat] && this.pokemonSet.ivs[stat] !== 0)
+				this.pokemonSet.ivs[stat] = 31;
 		}
-		for (stat in this.set.evs) {
-			this.set.evs[stat] = this.battle.clampIntRange(this.set.evs[stat], 0, 255);
+		for (stat in this.pokemonSet.evs) {
+			this.pokemonSet.evs[stat] = this.battle.clampIntRange(
+				this.pokemonSet.evs[stat],
+				0,
+				255
+			);
 		}
-		for (stat in this.set.ivs) {
-			this.set.ivs[stat] = this.battle.clampIntRange(this.set.ivs[stat], 0, 31);
+		for (stat in this.pokemonSet.ivs) {
+			this.pokemonSet.ivs[stat] = this.battle.clampIntRange(
+				this.pokemonSet.ivs[stat],
+				0,
+				31
+			);
 		}
 		if (this.battle.gen && this.battle.gen <= 2) {
 			// We represent DVs using even IVs. Ensure they are in fact even.
-			for (stat in this.set.ivs) {
-				this.set.ivs[stat] &= 30;
+			for (stat in this.pokemonSet.ivs) {
+				this.pokemonSet.ivs[stat] &= 30;
 			}
 		}
 
-		const hpData = this.battle.dex.getHiddenPower(this.set.ivs);
-		this.hpType = set.hpType || hpData.type;
+		const hpData = this.battle.dex.getHiddenPower(this.pokemonSet.ivs);
+		this.hpType = pokemonSet.hpType || hpData.type;
 		this.hpPower = hpData.power;
 
 		this.baseHpType = this.hpType;
@@ -398,13 +449,13 @@ export class Pokemon {
 		this.storedStats = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
 		this.boosts = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0};
 
-		this.baseAbility = toID(set.ability);
+		this.baseAbility = toID(pokemonSet.ability);
 		this.ability = this.baseAbility;
 		this.abilityState = {id: this.ability};
 
-		this.item = toID(set.item);
-		this.itemState = {id: this.item};
-		this.lastItem = '';
+		this.item = toID(pokemonSet.item);
+		this.itemState = { id: this.item };
+		this.lastItem = "";
 		this.usedItemThisTurn = false;
 		this.ateBerry = false;
 
@@ -425,7 +476,7 @@ export class Pokemon {
 		this.knownType = true;
 		this.apparentType = this.baseSpecies.types.join('/');
 		// Every Pokemon has a Terastal type
-		this.teraType = this.set.teraType || this.types[0];
+		this.teraType = this.pokemonSet.teraType || this.types[0];
 
 		this.switchFlag = false;
 		this.forceSwitchFlag = false;
@@ -640,7 +691,7 @@ export class Pokemon {
 		for (const stat in this.stats) {
 			statSum += this.calculateStat(stat, this.boosts[stat as BoostName]);
 			awakeningSum += this.calculateStat(
-				stat, this.boosts[stat as BoostName]) + this.set.evs[stat];
+				stat, this.boosts[stat as BoostName]) + this.pokemonSet.evs[stat];
 		}
 		const combatPower = Math.floor(Math.floor(statSum * this.level * 6 / 100) +
 			(Math.floor(awakeningSum) * Math.floor((this.level * 4) / 100 + 2)));

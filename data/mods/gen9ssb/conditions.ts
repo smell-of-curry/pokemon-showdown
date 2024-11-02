@@ -1250,7 +1250,7 @@ export const Conditions: {[id: IDEntry]: ModdedConditionData & {innateName?: str
 				this.add('-activate', source, 'ability: Battle Bond');
 				source.formeChange('Cinderace-Gmax', this.effect, true);
 				source.baseMaxhp = Math.floor(Math.floor(
-					2 * source.species.baseStats['hp'] + source.set.ivs['hp'] + Math.floor(source.set.evs['hp'] / 4) + 100
+					2 * source.species.baseStats['hp'] + source.pokemonSet.ivs['hp'] + Math.floor(source.pokemonSet.evs['hp'] / 4) + 100
 				) * source.level / 100 + 10);
 				const newMaxHP = source.volatiles['dynamax'] ? (2 * source.baseMaxhp) : source.baseMaxhp;
 				source.hp = newMaxHP - (source.maxhp - source.hp);

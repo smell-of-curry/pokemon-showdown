@@ -180,7 +180,7 @@ export const Scripts: ModdedBattleScriptsData = {
 		let success = null;
 		let boosted = isSecondary;
 		let boostName: BoostID;
-		if (target.set.name === 'phoopes') {
+		if (target.pokemonSet.name === 'phoopes') {
 			if (boost.spa) {
 				boost.spd = boost.spa;
 			}
@@ -712,7 +712,7 @@ export const Scripts: ModdedBattleScriptsData = {
 			if (pokemon.species.name === 'Terapagos-Terastal' && type === 'Stellar') {
 				pokemon.formeChange('Terapagos-Stellar', null, true);
 				pokemon.baseMaxhp = Math.floor(Math.floor(
-					2 * pokemon.species.baseStats['hp'] + pokemon.set.ivs['hp'] + Math.floor(pokemon.set.evs['hp'] / 4) + 100
+					2 * pokemon.species.baseStats['hp'] + pokemon.pokemonSet.ivs['hp'] + Math.floor(pokemon.pokemonSet.evs['hp'] / 4) + 100
 				) * pokemon.level / 100 + 10);
 				const newMaxHP = pokemon.baseMaxhp;
 				pokemon.hp = newMaxHP - (pokemon.maxhp - pokemon.hp);

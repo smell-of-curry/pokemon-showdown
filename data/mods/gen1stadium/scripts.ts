@@ -21,7 +21,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				let stat = this.species.baseStats[statName];
 				stat = Math.floor(
 					Math.floor(
-						2 * stat + this.set.ivs[statName] + Math.floor(this.set.evs[statName] / 4)
+						2 * stat + this.pokemonSet.ivs[statName] + Math.floor(this.pokemonSet.evs[statName] / 4)
 					) * this.level / 100 + 5
 				);
 				this.baseStoredStats[statName] = this.storedStats[statName] = Math.floor(stat);

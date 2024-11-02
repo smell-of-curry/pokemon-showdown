@@ -17,6 +17,8 @@ New sections will be added to the bottom of the specified column.
 The column value will be ignored for repeat sections.
 */
 
+import { Dex } from '../sim';
+
 export const Formats: import('../sim/dex-formats').FormatList = [
 
 	// S/V Singles
@@ -1140,8 +1142,8 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		onModifySpecies(species, target, source, effect) {
 			if (!target) return; // chat
 			if (effect && ['imposter', 'transform'].includes(effect.id)) return;
-			if (target.set.name === target.set.species) return;
-			const crossSpecies = this.dex.species.get(target.set.name);
+			if (target.pokemonSet.name === target.pokemonSet.species) return;
+			const crossSpecies = this.dex.species.get(target.pokemonSet.name);
 			if (!crossSpecies.exists) return;
 			if (species.battleOnly || !species.nfe) return;
 			const crossIsUnreleased = (crossSpecies.tier === "Unreleased" && crossSpecies.isNonstandard === "Unobtainable" &&
@@ -1308,7 +1310,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		},
 		onBegin() {
 			for (const pokemon of this.getAllPokemon()) {
-				const move = this.dex.getActiveMove(pokemon.set.item);
+				const move = this.dex.getActiveMove(pokemon.pokemonSet.item);
 				if (move.exists && move.category !== 'Status') {
 					pokemon.m.forte = move;
 					pokemon.item = 'mail' as ID;
@@ -2969,7 +2971,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		banlist: ['Nonexistent'],
 		onModifySpecies(species, target, source, effect) {
 			if (!target) return;
-			return {...species, ...(target.set as any).hc};
+			return {...species, ...(target.pokemonSet as any).hc};
 		},
 		onSwitchIn(pokemon) {
 			this.add('-start', pokemon, 'typechange', pokemon.getTypes(true).join('/'), '[silent]');

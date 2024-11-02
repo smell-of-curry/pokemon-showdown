@@ -52,8 +52,8 @@ export const Rulesets: import('../../../sim/dex-formats').ModdedFormatDataTable 
 			if (!(tier in boosts)) return;
 			// Non-Pokemon bans in lower tiers
 			if (target) {
-				if (target.set.item === 'lightclay') return;
-				if (['drizzle', 'drought', 'slushrush'].includes(target.set.ability) && boosts[tier] > 20) tier = 'nubl';
+				if (target.pokemonSet.item === 'lightclay') return;
+				if (['drizzle', 'drought', 'slushrush'].includes(target.pokemonSet.ability) && boosts[tier] > 20) tier = 'nubl';
 			}
 			const pokemon = this.dex.deepClone(species);
 			pokemon.bst = pokemon.baseStats['hp'];
@@ -77,7 +77,7 @@ export const Rulesets: import('../../../sim/dex-formats').ModdedFormatDataTable 
 			if (!target) return; // Chat command
 			if (effect && ['imposter', 'transform'].includes(effect.id)) return;
 			const typesSet = new Set(species.types);
-			const bonusType = this.dex.types.get(target.set.name);
+			const bonusType = this.dex.types.get(target.pokemonSet.name);
 			if (bonusType.exists) typesSet.add(bonusType.name);
 			return {...species, types: [...typesSet]};
 		},

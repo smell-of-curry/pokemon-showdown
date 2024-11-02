@@ -4268,7 +4268,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 			this.boost({def: 1, spd: 1});
 			(pokemon as any).level += 5;
 			pokemon.details = pokemon.species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-				(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
+				(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 			this.add('-anim', pokemon, 'Geomancy', pokemon);
 			this.add('replace', pokemon, pokemon.details);
 			this.add('-message', `${pokemon.name} gained 5 levels!`);
@@ -5906,7 +5906,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 				this.add('custom', '-endterastallize', pokemon);
 				delete pokemon.terastallized;
 				const details = pokemon.species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
+					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 				this.add('detailschange', pokemon, details);
 			}
 		},

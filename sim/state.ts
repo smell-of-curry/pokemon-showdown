@@ -184,7 +184,7 @@ export const State = new class {
 		const team = new Array(side.pokemon.length);
 		for (const [i, pokemon] of side.pokemon.entries()) {
 			state.pokemon[i] = this.serializePokemon(pokemon);
-			team[side.team.indexOf(pokemon.set)] = i + 1;
+			team[side.team.indexOf(pokemon.pokemonSet)] = i + 1;
 		}
 		// We encode the team such that it could be used as a valid `/team` command
 		// during decoding to transform the current ordering of the serialized Side's
@@ -212,7 +212,7 @@ export const State = new class {
 
 	serializePokemon(pokemon: Pokemon): /* Pokemon */ AnyObject {
 		const state: /* Pokemon */ AnyObject = this.serialize(pokemon, POKEMON, pokemon.battle);
-		state.set = pokemon.set;
+		state.set = pokemon.pokemonSet;
 		// Only serialize the baseMoveSlots if they differ from moveSlots. We could get fancy and
 		// only serialize the diff and its index but thats overkill for a pretty niche case anyway.
 		if (pokemon.baseMoveSlots.length !== pokemon.moveSlots.length ||

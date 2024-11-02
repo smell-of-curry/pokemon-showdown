@@ -2030,7 +2030,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.debug('illusion cleared');
 				pokemon.illusion = null;
 				const details = pokemon.species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
+					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 				this.add('replace', pokemon, details);
 				this.add('-end', pokemon, 'Illusion');
 				if (this.ruleTable.has('illusionlevelmod')) {
@@ -3302,7 +3302,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 			this.add('-activate', pokemon, 'ability: Power Construct');
 			pokemon.formeChange('Zygarde-Complete', this.effect, true);
 			pokemon.baseMaxhp = Math.floor(Math.floor(
-				2 * pokemon.species.baseStats['hp'] + pokemon.set.ivs['hp'] + Math.floor(pokemon.set.evs['hp'] / 4) + 100
+				2 * pokemon.species.baseStats['hp'] + pokemon.pokemonSet.ivs['hp'] + Math.floor(pokemon.pokemonSet.evs['hp'] / 4) + 100
 			) * pokemon.level / 100 + 10);
 			const newMaxHP = pokemon.volatiles['dynamax'] ? (2 * pokemon.baseMaxhp) : pokemon.baseMaxhp;
 			pokemon.hp = newMaxHP - (pokemon.maxhp - pokemon.hp);
@@ -4167,7 +4167,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			} else {
 				if (pokemon.species.forme === 'Meteor') {
-					pokemon.formeChange(pokemon.set.species);
+					pokemon.formeChange(pokemon.pokemonSet.species);
 				}
 			}
 		},
@@ -4180,7 +4180,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				}
 			} else {
 				if (pokemon.species.forme === 'Meteor') {
-					pokemon.formeChange(pokemon.set.species);
+					pokemon.formeChange(pokemon.pokemonSet.species);
 				}
 			}
 		},
@@ -4892,7 +4892,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 				this.add('-activate', pokemon, 'ability: Tera Shift');
 				pokemon.formeChange('Terapagos-Terastal', this.effect, true);
 				pokemon.baseMaxhp = Math.floor(Math.floor(
-					2 * pokemon.species.baseStats['hp'] + pokemon.set.ivs['hp'] + Math.floor(pokemon.set.evs['hp'] / 4) + 100
+					2 * pokemon.species.baseStats['hp'] + pokemon.pokemonSet.ivs['hp'] + Math.floor(pokemon.pokemonSet.evs['hp'] / 4) + 100
 				) * pokemon.level / 100 + 10);
 				const newMaxHP = pokemon.baseMaxhp;
 				pokemon.hp = newMaxHP - (pokemon.maxhp - pokemon.hp);

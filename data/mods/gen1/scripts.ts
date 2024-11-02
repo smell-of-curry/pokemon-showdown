@@ -806,7 +806,7 @@ export const Scripts: ModdedBattleScriptsData = {
 			if (!isCrit) {
 				// In gen 1, the critical chance is based on speed.
 				// First, we get the base speed, divide it by 2 and floor it. This is our current crit chance.
-				let critChance = Math.floor(this.dex.species.get(source.set.species).baseStats['spe'] / 2);
+				let critChance = Math.floor(this.dex.species.get(source.pokemonSet.species).baseStats['spe'] / 2);
 
 				// Now we check for focus energy volatile.
 				if (source.volatiles['focusenergy']) {
