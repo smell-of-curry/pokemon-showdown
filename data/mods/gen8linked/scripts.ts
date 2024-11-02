@@ -405,7 +405,7 @@ export const Scripts: ModdedBattleScriptsData = {
 
 			// Dancer's activation order is completely different from any other event, so it's handled separately
 			if (move.flags['dance'] && moveDidSomething && !move.isExternal) {
-				const dancers = [];
+				const dancers: Pokemon[] = [];
 				for (const currentPoke of this.battle.getAllActive()) {
 					if (pokemon === currentPoke) continue;
 					if (currentPoke.hasAbility('dancer') && !currentPoke.isSemiInvulnerable()) {
@@ -518,7 +518,7 @@ export const Scripts: ModdedBattleScriptsData = {
 
 			const deferPriority = this.battle.gen === 7 && action.mega && action.mega !== 'done';
 			if (action.move) {
-				let target = null;
+				let target: Pokemon | null = null;
 				action.move = this.battle.dex.getActiveMove(action.move);
 
 				if (!action.targetLoc) {

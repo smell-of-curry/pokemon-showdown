@@ -209,7 +209,7 @@ export class DexItems {
 
 	all(): readonly Item[] {
 		if (this.allCache) return this.allCache;
-		const items = [];
+		const items: Item[] = [];
 		for (const id in this.dex.data.Items) {
 			items.push(this.getByID(id as ID));
 		}

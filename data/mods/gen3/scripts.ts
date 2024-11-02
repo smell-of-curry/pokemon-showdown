@@ -212,7 +212,7 @@ export const Scripts: ModdedBattleScriptsData = {
 					return false;
 				}
 				if (targets.length > 1) move.spreadHit = true;
-				const hitSlots = [];
+				const hitSlots: PokemonSlot[] = [];
 				for (const source of targets) {
 					const hitResult = this.tryMoveHit(source, pokemon, move);
 					if (hitResult || hitResult === 0 || hitResult === undefined) {

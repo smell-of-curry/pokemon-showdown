@@ -3,6 +3,7 @@ import {assignMissingFields, toID, BasicEffect} from './dex-data';
 import {EventMethods} from './dex-conditions';
 import {SpeciesData} from './dex-species';
 import {Tags} from '../data/tags';
+import {Formats as ConfigFormats} from "../config/formats"
 
 const DEFAULT_MOD = 'gen9';
 
@@ -574,7 +575,7 @@ export class DexFormats {
 		// Load formats
 		let customFormats;
 		try {
-			customFormats = require(`${__dirname}/../config/custom-formats`).Formats;
+			customFormats = ConfigFormats;
 			if (!Array.isArray(customFormats)) {
 				throw new TypeError(`Exported property 'Formats' from "./config/custom-formats.ts" must be an array`);
 			}
@@ -583,7 +584,7 @@ export class DexFormats {
 				throw e;
 			}
 		}
-		let Formats: AnyObject[] = require(`${__dirname}/../config/formats`).Formats;
+		let Formats: AnyObject[] = ConfigFormats;
 		if (!Array.isArray(Formats)) {
 			throw new TypeError(`Exported property 'Formats' from "./config/formats.ts" must be an array`);
 		}
@@ -601,7 +602,8 @@ export class DexFormats {
 			}
 			if (!format.section) format.section = section;
 			if (!format.column) format.column = column;
-			if (this.rulesetCache.has(id)) throw new Error(`Format #${i + 1} has a duplicate ID: '${id}'`);
+			//if (this.rulesetCache.has(id)) throw new Error(`Format #${i + 1} has a duplicate ID: '${id}'`);
+			if (this.rulesetCache.has(id)) continue
 			format.effectType = 'Format';
 			format.baseRuleset = format.ruleset ? format.ruleset.slice() : [];
 			if (format.challengeShow === undefined) format.challengeShow = true;
@@ -645,6 +647,7 @@ export class DexFormats {
 
 	get(name?: string | Format, isTrusted = false): Format {
 		if (name && typeof name !== 'string') return name;
+		name = name as string;
 
 		name = (name || '').trim();
 		let id = toID(name);

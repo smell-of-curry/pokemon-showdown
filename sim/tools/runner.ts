@@ -59,7 +59,7 @@ export class Runner {
 		this.format = options.format;
 
 		this.prng = (options.prng && !Array.isArray(options.prng)) ?
-			options.prng : new PRNG(options.prng);
+			options.prng : new PRNG(options.prng as PRNGSeed);
 		this.p1options = {...Runner.AI_OPTIONS, ...options.p1options};
 		this.p2options = {...Runner.AI_OPTIONS, ...options.p2options};
 		this.p3options = {...Runner.AI_OPTIONS, ...options.p3options};

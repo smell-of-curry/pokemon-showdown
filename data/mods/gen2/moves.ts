@@ -756,7 +756,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 		inherit: true,
 		flags: {failencore: 1, nosleeptalk: 1, nosketch: 1},
 		onHit(pokemon) {
-			const moves = [];
+			const moves: string[] = [];
 			for (const moveSlot of pokemon.moveSlots) {
 				const moveid = moveSlot.id;
 				const move = this.dex.moves.get(moveid);

@@ -347,7 +347,7 @@ stat boosts are minor actions.
 > If `HP` is 0, `STATUS` should be ignored. The current behavior is for
 > `STATUS` to be `fnt`, but this may change and should not be relied upon.
 
-`|-heal|POKEMON|HP STATUS`
+`|-heal|POKEMON|DETAILS|HP STATUS`
 
 > Same as `-damage`, but the Pokémon has healed damage instead.
 

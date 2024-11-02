@@ -100,7 +100,7 @@ export const Scripts: ModdedBattleScriptsData = {
 			return hitResults;
 		},
 		hitStepAccuracy(targets, pokemon, move) {
-			const hitResults = [];
+			const hitResults: boolean[] = [];
 			for (const [i, target] of targets.entries()) {
 				this.battle.activeTarget = target;
 				// calculate true accuracy

@@ -862,7 +862,7 @@ export function stdout() {
 }
 
 export function stdpipe(stream: WriteStream | ReadStream | ReadWriteStream) {
-	const promises = [];
+	const promises: Promise<void>[] = [];
 	if ((stream as ReadStream | WriteStream & {pipeTo: undefined}).pipeTo) {
 		promises.push((stream as ReadStream).pipeTo(stdout()));
 	}

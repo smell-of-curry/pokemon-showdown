@@ -60,7 +60,7 @@ export class ExhaustiveRunner {
 		this.format = options.format;
 		this.cycles = options.cycles || ExhaustiveRunner.DEFAULT_CYCLES;
 		this.prng = (options.prng && !Array.isArray(options.prng)) ?
-			options.prng : new PRNG(options.prng);
+			options.prng : new PRNG(options.prng as PRNGSeed);
 		this.log = !!options.log;
 		this.maxGames = options.maxGames;
 		this.maxFailures = options.maxFailures || ExhaustiveRunner.MAX_FAILURES;
@@ -199,7 +199,7 @@ class TeamGenerator {
 		signatures: Map<string, {item: string, move?: string}[]>
 	) {
 		this.dex = dex;
-		this.prng = prng && !Array.isArray(prng) ? prng : new PRNG(prng);
+		this.prng = prng && !Array.isArray(prng) ? prng : new PRNG(prng as PRNGSeed);
 		this.pools = pools;
 		this.signatures = signatures;
 
@@ -221,7 +221,7 @@ class TeamGenerator {
 			const randomIVs = () => this.prng.next(32);
 
 			let item;
-			const moves = [];
+			const moves: string[] = [];
 			const combos = this.signatures.get(species.id);
 			if (combos && this.prng.next() > TeamGenerator.COMBO) {
 				const combo = this.prng.sample(combos);
@@ -332,7 +332,7 @@ class Pool {
 	next(num: number): string[];
 	next(num?: number): string | string[] {
 		if (!num) return this.choose();
-		const chosen = [];
+		const chosen: any[] = [];
 		for (let i = 0; i < num; i++) {
 			chosen.push(this.choose());
 		}

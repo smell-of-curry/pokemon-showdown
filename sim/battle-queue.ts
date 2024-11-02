@@ -254,7 +254,7 @@ export class BattleQueue {
 
 		const deferPriority = this.battle.gen === 7 && action.mega && action.mega !== 'done';
 		if (action.move) {
-			let target = null;
+			let target: Pokemon | null = null;
 			action.move = this.battle.dex.getActiveMove(action.move);
 
 			if (!action.targetLoc) {
@@ -377,8 +377,8 @@ export class BattleQueue {
 		}
 		const actions = this.resolveAction(choice, midTurn);
 
-		let firstIndex = null;
-		let lastIndex = null;
+		let firstIndex: number | null = null;
+		let lastIndex: number | null = null;
 		for (const [i, curAction] of this.list.entries()) {
 			const compared = this.battle.comparePriority(actions[0], curAction);
 			if (compared <= 0 && firstIndex === null) {

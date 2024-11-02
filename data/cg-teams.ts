@@ -33,7 +33,7 @@
  *   - Tracking type coverage to make it more likely that a moveset can hit every type
  */
 
-import {Dex, PRNG, SQL} from '../sim';
+import {Dex, PRNG} from '../sim';
 import {EventMethods} from '../sim/dex-conditions';
 import {
 	ABILITY_MOVE_BONUSES,
@@ -55,37 +55,6 @@ const MAX_WEAK_TO_SAME_TYPE = 3;
 
 const levelOverride: {[speciesID: string]: number} = {};
 export let levelUpdateInterval: NodeJS.Timeout | null = null;
-
-async function updateLevels(database: SQL.DatabaseManager) {
-	const updateSpecies = await database.prepare(
-		'UPDATE gen9computergeneratedteams SET wins = 0, losses = 0, level = ? WHERE species_id = ?'
-	);
-	const updateHistory = await database.prepare(
-		`INSERT INTO gen9_historical_levels (level, species_id, timestamp) VALUES (?, ?, ${Date.now()})`
-	);
-	const data = await database.all('SELECT species_id, wins, losses, level FROM gen9computergeneratedteams');
-	for (let {species_id, wins, losses, level} of data) {
-		const total = wins + losses;
-
-		if (total > 10) {
-			if (wins / total >= 0.55) level--;
-			if (wins / total <= 0.45) level++;
-			level = Math.max(1, Math.min(100, level));
-			await updateSpecies?.run([level, species_id]);
-			await updateHistory?.run([level, species_id]);
-		}
-
-		levelOverride[species_id] = level;
-	}
-}
-
-if (global.Config && Config.usesqlite && Config.usesqliteleveling) {
-	const database = SQL(module, {file: './databases/battlestats.db'});
-
-	// update every 2 hours
-	void updateLevels(database);
-	levelUpdateInterval = setInterval(() => void updateLevels(database), 1000 * 60 * 60 * 2);
-}
 
 export default class TeamGenerator {
 	dex: ModdedDex;

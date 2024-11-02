@@ -1,124 +1,11 @@
 import {SSBSet} from "./random-teams";
 import {ChosenAction} from '../../../sim/side';
-import {FS} from '../../../lib';
 import {toID} from '../../../sim/dex-data';
-
-// Similar to User.usergroups. Cannot import here due to users.ts requiring Chat
-// This also acts as a cache, meaning ranks will only update when a hotpatch/restart occurs
-const usergroups: {[userid: string]: string} = {};
-const usergroupData = FS('config/usergroups.csv').readIfExistsSync().split('\n');
-for (const row of usergroupData) {
-	if (!toID(row)) continue;
-
-	const cells = row.split(',');
-	if (cells.length > 3) throw new Error(`Invalid entry when parsing usergroups.csv`);
-	usergroups[toID(cells[0])] = cells[1].trim() || ' ';
-}
-
-const roomauth: {[roomid: string]: {[userid: string]: string}} = {};
-/**
- * Given a username and room, returns the auth they have in that room. Used for some conditional messages/effects.
- * Each room is cached on the first call until the process is restarted.
- */
-export function getRoomauth(name: string, room: string) {
-	const userid = toID(name);
-	const roomid = toID(room);
-	if (roomauth[roomid]) return roomauth[roomid][userid] || null;
-	const roomsList: any[] = JSON.parse(FS('config/chatrooms.json').readIfExistsSync() || '[]');
-	const roomData = roomsList.find(r => toID(r.title) === roomid);
-	if (!roomData) return null;
-	roomauth[roomid] = roomData.auth;
-	return roomauth[roomid][userid] || null;
-}
-
-export function getName(name: string): string {
-	const userid = toID(name);
-	if (!userid) throw new Error('No/Invalid name passed to getSymbol');
-
-	let group = usergroups[userid] || ' ';
-	if (name === 'Artemis') group = '@';
-	if (name === 'Jeopard-E' || name === 'Ice Kyubs') group = '*';
-	return Math.floor(Date.now() / 1000) + '|' + group + name;
-}
 
 export function enemyStaff(pokemon: Pokemon): string {
 	const foePokemon = pokemon.side.foe.active[0];
 	if (foePokemon.illusion) return foePokemon.illusion.name;
 	return foePokemon.name;
-}
-
-/** TODO: What happened to make this work weird?
- * Assigns a new set to a Pokémon
- * @param pokemon the Pokemon to assign the set to
- * @param newSet the SSBSet to assign
- */
-export function changeSet(context: Battle, pokemon: Pokemon, newSet: SSBSet, changeAbility = false) {
-	if (pokemon.transformed) return;
-	const evs: StatsTable = {
-		hp: newSet.evs?.hp || 0,
-		atk: newSet.evs?.atk || 0,
-		def: newSet.evs?.def || 0,
-		spa: newSet.evs?.spa || 0,
-		spd: newSet.evs?.spd || 0,
-		spe: newSet.evs?.spe || 0,
-	};
-	const ivs: StatsTable = {
-		hp: newSet.ivs?.hp || 31,
-		atk: newSet.ivs?.atk || 31,
-		def: newSet.ivs?.def || 31,
-		spa: newSet.ivs?.spa || 31,
-		spd: newSet.ivs?.spd || 31,
-		spe: newSet.ivs?.spe || 31,
-	};
-	pokemon.set.evs = evs;
-	pokemon.set.ivs = ivs;
-	if (newSet.nature) pokemon.set.nature = Array.isArray(newSet.nature) ? context.sample(newSet.nature) : newSet.nature;
-	const oldGender = pokemon.set.gender;
-	if ((pokemon.set.gender !== newSet.gender) && !Array.isArray(newSet.gender)) {
-		pokemon.set.gender = newSet.gender;
-		// @ts-ignore Shut up sharp_claw wanted this
-		pokemon.gender = newSet.gender;
-	}
-	const oldShiny = pokemon.set.shiny;
-	pokemon.set.shiny = (typeof newSet.shiny === 'number') ? context.randomChance(1, newSet.shiny) : !!newSet.shiny;
-	let percent = (pokemon.hp / pokemon.baseMaxhp);
-	if (newSet.species === 'Shedinja') percent = 1;
-	pokemon.formeChange(newSet.species, context.effect, true);
-	if (!pokemon.terastallized && newSet.teraType) {
-		const allTypes = context.dex.types.all().map(x => x.name);
-		pokemon.teraType = newSet.teraType === 'Any' ?
-			allTypes[Math.floor(Math.random() * allTypes.length)] :
-			Array.isArray(newSet.teraType) ?
-				newSet.teraType[Math.floor(Math.random() * newSet.teraType.length)] :
-				newSet.teraType;
-	}
-	const details = pokemon.species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-		(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
-	if (oldShiny !== pokemon.set.shiny || oldGender !== pokemon.gender) context.add('replace', pokemon, details);
-	if (changeAbility) pokemon.setAbility(newSet.ability as string, undefined, true);
-
-	pokemon.baseMaxhp = pokemon.species.name === 'Shedinja' ? 1 : Math.floor(Math.floor(
-		2 * pokemon.species.baseStats.hp + pokemon.set.ivs.hp + Math.floor(pokemon.set.evs.hp / 4) + 100
-	) * pokemon.level / 100 + 10);
-	const newMaxHP = pokemon.baseMaxhp;
-	pokemon.hp = Math.round(newMaxHP * percent);
-	pokemon.maxhp = newMaxHP;
-	context.add('-heal', pokemon, pokemon.getHealth, '[silent]');
-	if (pokemon.item) {
-		let item = newSet.item;
-		if (typeof item !== 'string') item = item[context.random(item.length)];
-		if (context.toID(item) !== (pokemon.item || pokemon.lastItem)) pokemon.setItem(item);
-	}
-	if (!pokemon.m.datacorrupt) {
-		const newMoves = changeMoves(context, pokemon, newSet.moves.concat(newSet.signatureMove));
-		pokemon.moveSlots = newMoves;
-		// Necessary so pokemon doesn't get 8 moves
-		(pokemon as any).baseMoveSlots = newMoves;
-	}
-	pokemon.canMegaEvo = context.actions.canMegaEvo(pokemon);
-	pokemon.canUltraBurst = context.actions.canUltraBurst(pokemon);
-	pokemon.canTerastallize = (pokemon.canTerastallize === null) ? null : context.actions.canTerastallize(pokemon);
-	context.add('message', `${pokemon.name} changed form!`);
 }
 
 export const PSEUDO_WEATHERS = [
@@ -389,8 +276,8 @@ export const Scripts: ModdedBattleScriptsData = {
 				const species = pokemon.setSpecies(rawSpecies);
 				if (!species) continue;
 				pokemon.baseSpecies = rawSpecies;
-				pokemon.details = species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
-					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
+				pokemon.details = species.name + ", " + pokemon.uuid + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
+					(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 				// pokemon.setAbility(species.abilities['0'], null, true);
 				// pokemon.baseAbility = pokemon.ability;
 
@@ -525,7 +412,7 @@ export const Scripts: ModdedBattleScriptsData = {
 			action.target.status = '';
 			action.target.hp = 1; // Needed so hp functions works
 			action.target.sethp(action.target.maxhp / 2);
-			this.add('-heal', action.target, action.target.getHealth, '[from] move: Revival Blessing');
+			this.add('-heal', action.target, action.target.details, action.target.getHealth, '[from] move: Revival Blessing');
 			action.pokemon.side.removeSlotCondition(action.pokemon, 'revivalblessing');
 			break;
 		// @ts-ignore I'm sorry but it takes a lot
@@ -717,10 +604,10 @@ export const Scripts: ModdedBattleScriptsData = {
 				const newMaxHP = pokemon.baseMaxhp;
 				pokemon.hp = newMaxHP - (pokemon.maxhp - pokemon.hp);
 				pokemon.maxhp = newMaxHP;
-				this.battle.add('-heal', pokemon, pokemon.getHealth, '[silent]');
+				this.battle.add('-heal', pokemon, pokemon.details, pokemon.getHealth, '[silent]');
 			}
 			if (!pokemon.illusion && pokemon.name === 'Neko') {
-				this.battle.add(`c:|${getName('Neko')}|Possible thermal failure if operation continues (Meow on fire ?)`);
+				this.battle.add(`c:|Neko|Possible thermal failure if operation continues (Meow on fire ?)`);
 			}
 			this.battle.runEvent('AfterTerastallization', pokemon);
 		},
@@ -954,7 +841,7 @@ export const Scripts: ModdedBattleScriptsData = {
 			if (!speciesid) return false;
 
 			if (speciesid === 'Trapinch' && pokemon.name === 'Arya') {
-				this.battle.add(`c:|${getName('Arya')}|Oh yeaaaaah!!!!! Finally??!! I can finally Mega-Evolve!!! Vamossss`);
+				this.battle.add(`c:|Arya|Oh yeaaaaah!!!!! Finally??!! I can finally Mega-Evolve!!! Vamossss`);
 			}
 
 			pokemon.formeChange(speciesid, pokemon.getItem(), true);

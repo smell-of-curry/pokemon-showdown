@@ -106,7 +106,7 @@ export class BattleActions {
 			// if a pokemon is forced out by Whirlwind/etc or Eject Button/Pack, it can't use its chosen move
 			this.battle.queue.cancelAction(oldActive);
 
-			let newMove = null;
+			let newMove: ActiveMove | null = null;
 			if (this.battle.gen === 4 && sourceEffect) {
 				newMove = oldActive.lastMove;
 			}
@@ -135,11 +135,10 @@ export class BattleActions {
 			moveSlot.used = false;
 		}
 		this.battle.runEvent('BeforeSwitchIn', pokemon);
-		if (sourceEffect) {
-			this.battle.add(isDrag ? 'drag' : 'switch', pokemon, pokemon.getDetails, '[from] ' + sourceEffect);
-		} else {
-			this.battle.add(isDrag ? 'drag' : 'switch', pokemon, pokemon.getDetails);
-		}
+		// COBBLED: send actual uuid as optional when disguised by illusion
+		var optionals = [sourceEffect ? `[from] ${ sourceEffect }` : null, pokemon.illusion ? `[is] ${ pokemon.uuid }` : null];
+		this.battle.add(isDrag ? 'drag' : 'switch', pokemon, pokemon.getDetails, ...(optionals.filter(Boolean)));
+		// ==================================
 		pokemon.abilityOrder = this.battle.abilityOrder++;
 		if (isDrag && this.battle.gen === 2) pokemon.draggedIn = this.battle.turn;
 		pokemon.previouslySwitchedIn++;
@@ -330,7 +329,7 @@ export class BattleActions {
 
 		// Dancer's activation order is completely different from any other event, so it's handled separately
 		if (move.flags['dance'] && moveDidSomething && !move.isExternal) {
-			const dancers = [];
+			const dancers: Pokemon[] = [];
 			for (const currentPoke of this.battle.getAllActive()) {
 				if (pokemon === currentPoke) continue;
 				if (currentPoke.hasAbility('dancer') && !currentPoke.isSemiInvulnerable()) {
@@ -664,7 +663,7 @@ export class BattleActions {
 			move.ignoreImmunity = (move.category === 'Status');
 		}
 
-		const hitResults = [];
+		const hitResults: boolean[] = [];
 		for (const i of targets.keys()) {
 			hitResults[i] = (move.ignoreImmunity && (move.ignoreImmunity === true || move.ignoreImmunity[move.type])) ||
 				targets[i].runImmunity(move.type, !move.smartTarget);
@@ -673,7 +672,7 @@ export class BattleActions {
 		return hitResults;
 	}
 	hitStepTryImmunity(targets: Pokemon[], pokemon: Pokemon, move: ActiveMove) {
-		const hitResults = [];
+		const hitResults: boolean[] = [];
 		for (const [i, target] of targets.entries()) {
 			if (this.battle.gen >= 6 && move.flags['powder'] && target !== pokemon && !this.dex.getImmunity('powder', target)) {
 				this.battle.debug('natural powder immunity');
@@ -697,7 +696,7 @@ export class BattleActions {
 		return hitResults;
 	}
 	hitStepAccuracy(targets: Pokemon[], pokemon: Pokemon, move: ActiveMove) {
-		const hitResults = [];
+		const hitResults: boolean[] = [];
 		for (const [i, target] of targets.entries()) {
 			this.battle.activeTarget = target;
 			// calculate true accuracy
@@ -1140,11 +1139,11 @@ export class BattleActions {
 		}
 
 		const damagedTargets: Pokemon[] = [];
-		const damagedDamage = [];
+		const damagedDamage: number[] = [];
 		for (const [i, t] of targets.entries()) {
 			if (typeof damage[i] === 'number' && t) {
 				damagedTargets.push(t);
-				damagedDamage.push(damage[i]);
+				damagedDamage.push(damage[i] as number);
 			}
 		}
 		const pokemonOriginalHP = pokemon.hp;

@@ -4267,7 +4267,7 @@ export const Moves: import('../../../sim/dex-moves').ModdedMoveDataTable = {
 			pokemon.cureStatus();
 			this.boost({def: 1, spd: 1});
 			(pokemon as any).level += 5;
-			pokemon.details = pokemon.species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
+			pokemon.details = pokemon.species.name + ", " + pokemon.uuid + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
 				(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
 			this.add('-anim', pokemon, 'Geomancy', pokemon);
 			this.add('replace', pokemon, pokemon.details);

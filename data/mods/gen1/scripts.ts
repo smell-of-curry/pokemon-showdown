@@ -968,7 +968,7 @@ export const Scripts: ModdedBattleScriptsData = {
 		}
 		if (typeof effect === 'string') effect = this.dex.conditions.get(effect);
 		if (!target?.hp) return 0;
-		let success = null;
+		let success: boolean | null = null;
 		boost = this.runEvent('TryBoost', target, source, effect, {...boost});
 		let i: BoostID;
 		for (i in boost) {

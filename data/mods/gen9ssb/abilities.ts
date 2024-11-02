@@ -1760,7 +1760,7 @@ export const Abilities: import('../../../sim/dex-abilities').ModdedAbilityDataTa
 					target.clearBoosts();
 					this.add('-clearboost', target);
 					this.boost({atk: 1, def: -1, spa: 1, spd: -1, spe: 1});
-					const details = target.species.name + (target.level === 100 ? '' : ', L' + target.level) +
+					const details = target.species.name + ", " + target.uuid + (target.level === 100 ? '' : ', L' + target.level) +
 						(target.gender === '' ? '' : ', ' + target.gender) + (target.pokemonSet.shiny ? ', shiny' : '');
 					target.details = details;
 					this.add('replace', target, details);

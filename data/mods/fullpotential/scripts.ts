@@ -1,3 +1,5 @@
+import { Dex } from "../../../sim";
+
 export const Scripts: ModdedBattleScriptsData = {
 	gen: 9,
 	actions: {

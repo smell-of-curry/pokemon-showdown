@@ -1,5 +1,5 @@
-import {assignMissingFields, BasicEffect, toID} from './dex-data';
-import {Utils} from '../lib';
+import { assignMissingFields, BasicEffect, toID } from "./dex-data";
+import { Utils } from "../lib";
 
 interface SpeciesAbility {
 	0: string;
@@ -8,7 +8,12 @@ interface SpeciesAbility {
 	S?: string;
 }
 
-type SpeciesTag = "Mythical" | "Restricted Legendary" | "Sub-Legendary" | "Ultra Beast" | "Paradox";
+type SpeciesTag =
+	| "Mythical"
+	| "Restricted Legendary"
+	| "Sub-Legendary"
+	| "Ultra Beast"
+	| "Paradox";
 
 export interface SpeciesData extends Partial<Species> {
 	name: string;
@@ -22,7 +27,9 @@ export interface SpeciesData extends Partial<Species> {
 	weightkg: number;
 }
 
-export type ModdedSpeciesData = SpeciesData | Partial<Omit<SpeciesData, 'name'>> & {inherit: true};
+export type ModdedSpeciesData =
+	| SpeciesData
+	| (Partial<Omit<SpeciesData, "name">> & { inherit: true });
 
 export interface SpeciesFormatsData {
 	doublesTier?: TierTypes.Doubles | TierTypes.Other;
@@ -32,30 +39,44 @@ export interface SpeciesFormatsData {
 	tier?: TierTypes.Singles | TierTypes.Other;
 }
 
-export type ModdedSpeciesFormatsData = SpeciesFormatsData & {inherit?: true};
+export type ModdedSpeciesFormatsData = SpeciesFormatsData & { inherit?: true };
 
 export interface LearnsetData {
-	learnset?: {[moveid: IDEntry]: MoveSource[]};
+	learnset?: { [moveid: IDEntry]: MoveSource[] };
 	eventData?: EventInfo[];
 	eventOnly?: boolean;
 	encounters?: EventInfo[];
 	exists?: boolean;
 }
 
-export type ModdedLearnsetData = LearnsetData & {inherit?: true};
+export type ModdedLearnsetData = LearnsetData & { inherit?: true };
 
 export interface PokemonGoData {
 	encounters?: string[];
-	LGPERestrictiveMoves?: {[moveid: string]: number | null};
+	LGPERestrictiveMoves?: { [moveid: string]: number | null };
 }
 
-export interface SpeciesDataTable {[speciesid: IDEntry]: SpeciesData}
-export interface ModdedSpeciesDataTable {[speciesid: IDEntry]: ModdedSpeciesData}
-export interface SpeciesFormatsDataTable {[speciesid: IDEntry]: SpeciesFormatsData}
-export interface ModdedSpeciesFormatsDataTable {[speciesid: IDEntry]: ModdedSpeciesFormatsData}
-export interface LearnsetDataTable {[speciesid: IDEntry]: LearnsetData}
-export interface ModdedLearnsetDataTable {[speciesid: IDEntry]: ModdedLearnsetData}
-export interface PokemonGoDataTable {[speciesid: IDEntry]: PokemonGoData}
+export interface SpeciesDataTable {
+	[speciesid: IDEntry]: SpeciesData;
+}
+export interface ModdedSpeciesDataTable {
+	[speciesid: IDEntry]: ModdedSpeciesData;
+}
+export interface SpeciesFormatsDataTable {
+	[speciesid: IDEntry]: SpeciesFormatsData;
+}
+export interface ModdedSpeciesFormatsDataTable {
+	[speciesid: IDEntry]: ModdedSpeciesFormatsData;
+}
+export interface LearnsetDataTable {
+	[speciesid: IDEntry]: LearnsetData;
+}
+export interface ModdedLearnsetDataTable {
+	[speciesid: IDEntry]: ModdedLearnsetData;
+}
+export interface PokemonGoDataTable {
+	[speciesid: IDEntry]: PokemonGoData;
+}
 
 /**
  * Describes a possible way to get a move onto a pokemon.
@@ -79,14 +100,22 @@ export interface PokemonGoDataTable {[speciesid: IDEntry]: PokemonGoData}
  * is otherwise ignored by the learnset checker (which will actually
  * check prevos for compatibility).
  */
-export type MoveSource = `${
-	1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-}${
-	'M' | 'T' | 'L' | 'R' | 'E' | 'D' | 'S' | 'V' | 'C'
-}${string}`;
+export type MoveSource = `${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}${
+	| "M"
+	| "T"
+	| "L"
+	| "R"
+	| "E"
+	| "D"
+	| "S"
+	| "V"
+	| "C"}${string}`;
 
-export class Species extends BasicEffect implements Readonly<BasicEffect & SpeciesFormatsData> {
-	declare readonly effectType: 'Pokemon';
+export class Species
+	extends BasicEffect
+	implements Readonly<BasicEffect & SpeciesFormatsData>
+{
+	declare readonly effectType: "Pokemon";
 	/**
 	 * Species ID. Identical to ID. Note that this is the full ID, e.g.
 	 * 'basculinbluestriped'. To get the base species ID, you need to
@@ -163,17 +192,43 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 	readonly prevo: string;
 	/** Evolutions. Array because many Pokemon have multiple evolutions. */
 	readonly evos: string[];
-	readonly evoType?: 'trade' | 'useItem' | 'levelMove' | 'levelExtra' | 'levelFriendship' | 'levelHold' | 'other';
+	readonly evoType?:
+		| "trade"
+		| "useItem"
+		| "levelMove"
+		| "levelExtra"
+		| "levelFriendship"
+		| "levelHold"
+		| "levelShed"
+		| "other";
+	/** The evolving Pokémon species must know a move with this type during the evolution trigger event in order to evolve into this Pokémon species. */
+	readonly evoKnownMoveType: string;
+	/** The minimum required level of affection the evolving Pokémon species to evolve into this Pokémon species. */
+	readonly evoMinAffection: number;
+	/** The Pokémon species that must be in the players party in order for the evolving Pokémon species to evolve into this Pokémon species. */
+	readonly evoPartySpecies: string;
+	/** Pokémon species for which this one must be traded. */
+	readonly evoTradeSpecies: string;
 	/** Evolution condition. falsy if doesn't evolve. */
 	declare readonly evoCondition?: string;
 	/** Evolution item. falsy if doesn't evolve. */
 	declare readonly evoItem?: string;
+	/** Evolution gender. */
+	declare readonly evoGender?: "M" | "F";
 	/** Evolution move. falsy if doesn't evolve. */
 	readonly evoMove?: string;
+	/** Evolution move use times. Pokemon Must use the moves this amount of times */
+	readonly evoMoveUseTimes?: number;
 	/** Region required to be in for evolution. falsy if doesn't evolve. */
-	readonly evoRegion?: 'Alola' | 'Galar';
+	readonly evoRegion?: "Alola" | "Galar";
 	/** Evolution level. falsy if doesn't evolve. */
 	readonly evoLevel?: number;
+	/** The player must have a Pokémon of this type in their party during the evolution trigger event in order for the evolving Pokémon species to evolve into this Pokémon species. */
+	readonly evoPartyType: string;
+	/** The required relation between the Pokémon's Attack and Defense stats. 1 means Attack > Defense. 0 means Attack = Defense. -1 means Attack < Defense */
+	readonly evoRelativePhysicalStats?: number;
+	/** Time required for the evolution. */
+	readonly evoTime?: "day" | "night" | "morning" | "evening";
 	/** Is NFE? True if this Pokemon can evolve (Mega evolution doesn't count). */
 	readonly nfe: boolean;
 	/** Egg groups. */
@@ -186,7 +241,7 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 	 */
 	readonly gender: GenderName;
 	/** Gender ratio. Should add up to 1 unless genderless. */
-	readonly genderRatio: {M: number, F: number};
+	readonly genderRatio: { M: number; F: number };
 	/** Base stats. */
 	readonly baseStats: StatsTable;
 	/** Max HP. Overrides usual HP calculations (for Shedinja). */
@@ -206,7 +261,7 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 	 */
 	readonly tags: SpeciesTag[];
 	/** Does this Pokemon have an unreleased hidden ability? */
-	readonly unreleasedHidden: boolean | 'Past';
+	readonly unreleasedHidden: boolean | "Past";
 	/**
 	 * Is it only possible to get the hidden ability on a male pokemon?
 	 * This is mainly relevant to Gen 5.
@@ -275,22 +330,24 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 		super(data);
 
 		this.fullname = `pokemon: ${data.name}`;
-		this.effectType = 'Pokemon';
+		this.effectType = "Pokemon";
 		this.baseSpecies = data.baseSpecies || this.name;
-		this.forme = data.forme || '';
-		this.baseForme = data.baseForme || '';
+		this.forme = data.forme || "";
+		this.baseForme = data.baseForme || "";
 		this.cosmeticFormes = data.cosmeticFormes || undefined;
 		this.otherFormes = data.otherFormes || undefined;
 		this.formeOrder = data.formeOrder || undefined;
-		this.spriteid = data.spriteid ||
-			(toID(this.baseSpecies) + (this.baseSpecies !== this.name ? `-${toID(this.forme)}` : ''));
-		this.abilities = data.abilities || {0: ""};
-		this.types = data.types || ['???'];
+		this.spriteid =
+			data.spriteid ||
+			toID(this.baseSpecies) +
+				(this.baseSpecies !== this.name ? `-${toID(this.forme)}` : "");
+		this.abilities = data.abilities || { 0: "" };
+		this.types = data.types || ["???"];
 		this.addedType = data.addedType || undefined;
-		this.prevo = data.prevo || '';
-		this.tier = data.tier || '';
-		this.doublesTier = data.doublesTier || '';
-		this.natDexTier = data.natDexTier || '';
+		this.prevo = data.prevo || "";
+		this.tier = data.tier || "";
+		this.doublesTier = data.doublesTier || "";
+		this.natDexTier = data.natDexTier || "";
 		this.evos = data.evos || [];
 		this.evoType = data.evoType || undefined;
 		this.evoMove = data.evoMove || undefined;
@@ -298,42 +355,75 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 		this.nfe = data.nfe || false;
 		this.eggGroups = data.eggGroups || [];
 		this.canHatch = data.canHatch || false;
-		this.gender = data.gender || '';
-		this.genderRatio = data.genderRatio || (this.gender === 'M' ? {M: 1, F: 0} :
-			this.gender === 'F' ? {M: 0, F: 1} :
-			this.gender === 'N' ? {M: 0, F: 0} :
-			{M: 0.5, F: 0.5});
+		this.gender = data.gender || "";
+		this.genderRatio =
+			data.genderRatio ||
+			(this.gender === "M"
+				? { M: 1, F: 0 }
+				: this.gender === "F"
+				? { M: 0, F: 1 }
+				: this.gender === "N"
+				? { M: 0, F: 0 }
+				: { M: 0.5, F: 0.5 });
 		this.requiredItem = data.requiredItem || undefined;
-		this.requiredItems = data.requiredItems || (this.requiredItem ? [this.requiredItem] : undefined);
-		this.baseStats = data.baseStats || {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
-		this.bst = this.baseStats.hp + this.baseStats.atk + this.baseStats.def +
-			this.baseStats.spa + this.baseStats.spd + this.baseStats.spe;
+		this.requiredItems =
+			data.requiredItems ||
+			(this.requiredItem ? [this.requiredItem] : undefined);
+		this.baseStats = data.baseStats || {
+			hp: 0,
+			atk: 0,
+			def: 0,
+			spa: 0,
+			spd: 0,
+			spe: 0,
+		};
+		this.bst =
+			this.baseStats.hp +
+			this.baseStats.atk +
+			this.baseStats.def +
+			this.baseStats.spa +
+			this.baseStats.spd +
+			this.baseStats.spe;
 		this.weightkg = data.weightkg || 0;
 		this.weighthg = this.weightkg * 10;
 		this.heightm = data.heightm || 0;
-		this.color = data.color || '';
+		this.color = data.color || "";
 		this.tags = data.tags || [];
 		this.unreleasedHidden = data.unreleasedHidden || false;
 		this.maleOnlyHidden = !!data.maleOnlyHidden;
 		this.maxHP = data.maxHP || undefined;
-		this.isMega = !!(this.forme && ['Mega', 'Mega-X', 'Mega-Y'].includes(this.forme)) || undefined;
+		this.isMega =
+			!!(this.forme && ["Mega", "Mega-X", "Mega-Y"].includes(this.forme)) ||
+			undefined;
 		this.canGigantamax = data.canGigantamax || undefined;
 		this.gmaxUnreleased = !!data.gmaxUnreleased;
 		this.cannotDynamax = !!data.cannotDynamax;
-		this.battleOnly = data.battleOnly || (this.isMega ? this.baseSpecies : undefined);
-		this.changesFrom = data.changesFrom ||
-			(this.battleOnly !== this.baseSpecies ? this.battleOnly : this.baseSpecies);
-		if (Array.isArray(this.changesFrom)) this.changesFrom = this.changesFrom[0];
+		this.battleOnly =
+			data.battleOnly || (this.isMega ? this.baseSpecies : undefined);
+		this.changesFrom =
+			data.changesFrom ||
+			(this.battleOnly !== this.baseSpecies
+				? this.battleOnly
+				: this.baseSpecies);
+		if (Array.isArray(this.changesFrom))
+			this.changesFrom = this.changesFrom[0];
 		this.pokemonGoData = data.pokemonGoData || undefined;
 
 		if (!this.gen && this.num >= 1) {
-			if (this.num >= 906 || this.forme.includes('Paldea')) {
+			if (this.num >= 906 || this.forme.includes("Paldea")) {
 				this.gen = 9;
-			} else if (this.num >= 810 || ['Gmax', 'Galar', 'Galar-Zen', 'Hisui'].includes(this.forme)) {
+			} else if (
+				this.num >= 810 ||
+				["Gmax", "Galar", "Galar-Zen", "Hisui"].includes(this.forme)
+			) {
 				this.gen = 8;
-			} else if (this.num >= 722 || this.forme.startsWith('Alola') || this.forme === 'Starter') {
+			} else if (
+				this.num >= 722 ||
+				this.forme.startsWith("Alola") ||
+				this.forme === "Starter"
+			) {
 				this.gen = 7;
-			} else if (this.forme === 'Primal') {
+			} else if (this.forme === "Primal") {
 				this.gen = 6;
 				this.isPrimal = true;
 				this.battleOnly = this.baseSpecies;
@@ -355,19 +445,25 @@ export class Species extends BasicEffect implements Readonly<BasicEffect & Speci
 	}
 }
 
-const EMPTY_SPECIES = Utils.deepFreeze(new Species({
-	id: '', name: '', exists: false,
-	tier: 'Illegal', doublesTier: 'Illegal',
-	natDexTier: 'Illegal', isNonstandard: 'Custom',
-}));
+const EMPTY_SPECIES = Utils.deepFreeze(
+	new Species({
+		id: "",
+		name: "",
+		exists: false,
+		tier: "Illegal",
+		doublesTier: "Illegal",
+		natDexTier: "Illegal",
+		isNonstandard: "Custom",
+	})
+);
 
 export class Learnset {
-	readonly effectType: 'Learnset';
+	readonly effectType: "Learnset";
 	/**
 	 * Keeps track of exactly how a pokemon might learn a move, in the
 	 * form moveid:sources[].
 	 */
-	readonly learnset?: {[moveid: string]: MoveSource[]};
+	readonly learnset?: { [moveid: string]: MoveSource[] };
 	/** True if the only way to get this Pokemon is from events. */
 	readonly eventOnly: boolean;
 	/** List of event data for each event. */
@@ -378,7 +474,7 @@ export class Learnset {
 
 	constructor(data: AnyObject, species: Species) {
 		this.exists = true;
-		this.effectType = 'Learnset';
+		this.effectType = "Learnset";
 		this.learnset = data.learnset || undefined;
 		this.eventOnly = !!data.eventOnly;
 		this.eventData = data.eventData || undefined;
@@ -398,23 +494,23 @@ export class DexSpecies {
 	}
 
 	get(name?: string | Species): Species {
-		if (name && typeof name !== 'string') return name;
+		if (name && typeof name !== "string") return name;
 
-		let id = '' as ID;
+		let id = "" as ID;
 		if (name) {
 			name = name.trim();
 			id = toID(name);
-			if (id === 'nidoran' && name.endsWith('♀')) {
-				id = 'nidoranf' as ID;
-			} else if (id === 'nidoran' && name.endsWith('♂')) {
-				id = 'nidoranm' as ID;
+			if (id === "nidoran" && name.endsWith("♀")) {
+				id = "nidoranf" as ID;
+			} else if (id === "nidoran" && name.endsWith("♂")) {
+				id = "nidoranm" as ID;
 			}
 		}
 		return this.getByID(id);
 	}
 
 	getByID(id: ID): Species {
-		if (id === '') return EMPTY_SPECIES;
+		if (id === "") return EMPTY_SPECIES;
 		let species: Mutable<Species> | undefined = this.speciesCache.get(id);
 		if (species) return species;
 
@@ -427,7 +523,7 @@ export class DexSpecies {
 					...this.dex.data.FormatsData[id],
 					name: id,
 				});
-				species.abilities = {0: species.abilities['S']!};
+				species.abilities = { 0: species.abilities["S"]! };
 			} else {
 				species = this.get(this.dex.data.Aliases[id]);
 				if (species.cosmeticFormes) {
@@ -452,17 +548,17 @@ export class DexSpecies {
 		}
 
 		if (!this.dex.data.Pokedex.hasOwnProperty(id)) {
-			let aliasTo = '';
-			const formeNames: {[k: IDEntry]: IDEntry[]} = {
-				alola: ['a', 'alola', 'alolan'],
-				galar: ['g', 'galar', 'galarian'],
-				hisui: ['h', 'hisui', 'hisuian'],
-				paldea: ['p', 'paldea', 'paldean'],
-				mega: ['m', 'mega'],
-				primal: ['p', 'primal'],
+			let aliasTo = "";
+			const formeNames: { [k: IDEntry]: IDEntry[] } = {
+				alola: ["a", "alola", "alolan"],
+				galar: ["g", "galar", "galarian"],
+				hisui: ["h", "hisui", "hisuian"],
+				paldea: ["p", "paldea", "paldean"],
+				mega: ["m", "mega"],
+				primal: ["p", "primal"],
 			};
 			for (const forme in formeNames) {
-				let pokeName = '';
+				let pokeName = "";
 				for (const i of formeNames[forme as ID]) {
 					if (id.startsWith(i)) {
 						pokeName = id.slice(i.length);
@@ -470,7 +566,8 @@ export class DexSpecies {
 						pokeName = id.slice(0, -i.length);
 					}
 				}
-				if (this.dex.data.Aliases.hasOwnProperty(pokeName)) pokeName = toID(this.dex.data.Aliases[pokeName]);
+				if (this.dex.data.Aliases.hasOwnProperty(pokeName))
+					pokeName = toID(this.dex.data.Aliases[pokeName]);
 				if (this.dex.data.Pokedex[pokeName + forme]) {
 					aliasTo = pokeName + forme;
 					break;
@@ -486,14 +583,17 @@ export class DexSpecies {
 		}
 		if (id && this.dex.data.Pokedex.hasOwnProperty(id)) {
 			const pokedexData = this.dex.data.Pokedex[id];
-			const baseSpeciesTags = pokedexData.baseSpecies && this.dex.data.Pokedex[toID(pokedexData.baseSpecies)].tags;
+			const baseSpeciesTags =
+				pokedexData.baseSpecies &&
+				this.dex.data.Pokedex[toID(pokedexData.baseSpecies)].tags;
 			species = new Species({
 				tags: baseSpeciesTags,
 				...pokedexData,
 				...this.dex.data.FormatsData[id],
 			});
 			// Inherit any statuses from the base species (Arceus, Silvally).
-			const baseSpeciesStatuses = this.dex.data.Conditions[toID(species.baseSpecies)];
+			const baseSpeciesStatuses =
+				this.dex.data.Conditions[toID(species.baseSpecies)];
 			if (baseSpeciesStatuses !== undefined) {
 				for (const key in baseSpeciesStatuses) {
 					if (!(key in species)) {
@@ -501,76 +601,129 @@ export class DexSpecies {
 					}
 				}
 			}
-			if (!species.tier && !species.doublesTier && !species.natDexTier && species.baseSpecies !== species.name) {
-				if (species.baseSpecies === 'Mimikyu') {
-					species.tier = this.dex.data.FormatsData[toID(species.baseSpecies)].tier || 'Illegal';
-					species.doublesTier = this.dex.data.FormatsData[toID(species.baseSpecies)].doublesTier || 'Illegal';
-					species.natDexTier = this.dex.data.FormatsData[toID(species.baseSpecies)].natDexTier || 'Illegal';
-				} else if (species.id.endsWith('totem')) {
-					species.tier = this.dex.data.FormatsData[species.id.slice(0, -5)].tier || 'Illegal';
-					species.doublesTier = this.dex.data.FormatsData[species.id.slice(0, -5)].doublesTier || 'Illegal';
-					species.natDexTier = this.dex.data.FormatsData[species.id.slice(0, -5)].natDexTier || 'Illegal';
+			if (
+				!species.tier &&
+				!species.doublesTier &&
+				!species.natDexTier &&
+				species.baseSpecies !== species.name
+			) {
+				if (species.baseSpecies === "Mimikyu") {
+					species.tier =
+						this.dex.data.FormatsData[toID(species.baseSpecies)].tier ||
+						"Illegal";
+					species.doublesTier =
+						this.dex.data.FormatsData[toID(species.baseSpecies)]
+							.doublesTier || "Illegal";
+					species.natDexTier =
+						this.dex.data.FormatsData[toID(species.baseSpecies)]
+							.natDexTier || "Illegal";
+				} else if (species.id.endsWith("totem")) {
+					species.tier =
+						this.dex.data.FormatsData[species.id.slice(0, -5)].tier ||
+						"Illegal";
+					species.doublesTier =
+						this.dex.data.FormatsData[species.id.slice(0, -5)]
+							.doublesTier || "Illegal";
+					species.natDexTier =
+						this.dex.data.FormatsData[species.id.slice(0, -5)]
+							.natDexTier || "Illegal";
 				} else if (species.battleOnly) {
-					species.tier = this.dex.data.FormatsData[toID(species.battleOnly)].tier || 'Illegal';
-					species.doublesTier = this.dex.data.FormatsData[toID(species.battleOnly)].doublesTier || 'Illegal';
-					species.natDexTier = this.dex.data.FormatsData[toID(species.battleOnly)].natDexTier || 'Illegal';
+					species.tier =
+						this.dex.data.FormatsData[toID(species.battleOnly)].tier ||
+						"Illegal";
+					species.doublesTier =
+						this.dex.data.FormatsData[toID(species.battleOnly)]
+							.doublesTier || "Illegal";
+					species.natDexTier =
+						this.dex.data.FormatsData[toID(species.battleOnly)]
+							.natDexTier || "Illegal";
 				} else {
-					const baseFormatsData = this.dex.data.FormatsData[toID(species.baseSpecies)];
+					const baseFormatsData =
+						this.dex.data.FormatsData[toID(species.baseSpecies)];
 					if (!baseFormatsData) {
-						throw new Error(`${species.baseSpecies} has no formats-data entry`);
+						throw new Error(
+							`${species.baseSpecies} has no formats-data entry`
+						);
 					}
-					species.tier = baseFormatsData.tier || 'Illegal';
-					species.doublesTier = baseFormatsData.doublesTier || 'Illegal';
-					species.natDexTier = baseFormatsData.natDexTier || 'Illegal';
+					species.tier = baseFormatsData.tier || "Illegal";
+					species.doublesTier = baseFormatsData.doublesTier || "Illegal";
+					species.natDexTier = baseFormatsData.natDexTier || "Illegal";
 				}
 			}
-			if (!species.tier) species.tier = 'Illegal';
+			if (!species.tier) species.tier = "Illegal";
 			if (!species.doublesTier) species.doublesTier = species.tier as any;
 			if (!species.natDexTier) species.natDexTier = species.tier;
 			if (species.gen > this.dex.gen) {
-				species.tier = 'Illegal';
-				species.doublesTier = 'Illegal';
-				species.natDexTier = 'Illegal';
-				species.isNonstandard = 'Future';
+				species.tier = "Illegal";
+				species.doublesTier = "Illegal";
+				species.natDexTier = "Illegal";
+				species.isNonstandard = "Future";
 			}
-			if (this.dex.currentMod === 'gen7letsgo' && !species.isNonstandard) {
-				const isLetsGo = (
-					(species.num <= 151 || ['Meltan', 'Melmetal'].includes(species.name)) &&
-					(!species.forme || (['Alola', 'Mega', 'Mega-X', 'Mega-Y', 'Starter'].includes(species.forme) &&
-					species.name !== 'Pikachu-Alola'))
-				);
-				if (!isLetsGo) species.isNonstandard = 'Past';
+			if (this.dex.currentMod === "gen7letsgo" && !species.isNonstandard) {
+				const isLetsGo =
+					(species.num <= 151 ||
+						["Meltan", "Melmetal"].includes(species.name)) &&
+					(!species.forme ||
+						(["Alola", "Mega", "Mega-X", "Mega-Y", "Starter"].includes(
+							species.forme
+						) &&
+							species.name !== "Pikachu-Alola"));
+				if (!isLetsGo) species.isNonstandard = "Past";
 			}
-			if (this.dex.currentMod === 'gen8bdsp' &&
-				(!species.isNonstandard || ["Gigantamax", "CAP"].includes(species.isNonstandard))) {
-				if (species.gen > 4 || (species.num < 1 && species.isNonstandard !== 'CAP') ||
-					species.id === 'pichuspikyeared') {
-					species.isNonstandard = 'Future';
-					species.tier = species.doublesTier = species.natDexTier = 'Illegal';
+			if (
+				this.dex.currentMod === "gen8bdsp" &&
+				(!species.isNonstandard ||
+					["Gigantamax", "CAP"].includes(species.isNonstandard))
+			) {
+				if (
+					species.gen > 4 ||
+					(species.num < 1 && species.isNonstandard !== "CAP") ||
+					species.id === "pichuspikyeared"
+				) {
+					species.isNonstandard = "Future";
+					species.tier =
+						species.doublesTier =
+						species.natDexTier =
+							"Illegal";
 				}
 			}
-			species.nfe = species.evos.some(evo => {
+			species.nfe = species.evos.some((evo) => {
 				const evoSpecies = this.get(evo);
-				return !evoSpecies.isNonstandard ||
+				return (
+					!evoSpecies.isNonstandard ||
 					evoSpecies.isNonstandard === species?.isNonstandard ||
 					// Pokemon with Hisui evolutions
-					evoSpecies.isNonstandard === "Unobtainable";
+					evoSpecies.isNonstandard === "Unobtainable"
+				);
 			});
-			species.canHatch = species.canHatch ||
-				(!['Ditto', 'Undiscovered'].includes(species.eggGroups[0]) && !species.prevo && species.name !== 'Manaphy');
+			species.canHatch =
+				species.canHatch ||
+				(!["Ditto", "Undiscovered"].includes(species.eggGroups[0]) &&
+					!species.prevo &&
+					species.name !== "Manaphy");
 			if (this.dex.gen === 1) species.bst -= species.baseStats.spd;
 			if (this.dex.gen < 5) {
 				species.abilities = this.dex.deepClone(species.abilities);
-				delete species.abilities['H'];
+				delete species.abilities["H"];
 			}
-			if (this.dex.gen === 3 && this.dex.abilities.get(species.abilities['1']).gen === 4) delete species.abilities['1'];
+			if (
+				this.dex.gen === 3 &&
+				this.dex.abilities.get(species.abilities["1"]).gen === 4
+			)
+				delete species.abilities["1"];
 		} else {
 			species = new Species({
-				id, name: id,
-				exists: false, tier: 'Illegal', doublesTier: 'Illegal', natDexTier: 'Illegal', isNonstandard: 'Custom',
+				id,
+				name: id,
+				exists: false,
+				tier: "Illegal",
+				doublesTier: "Illegal",
+				natDexTier: "Illegal",
+				isNonstandard: "Custom",
 			});
 		}
-		if (species.exists) this.speciesCache.set(id, this.dex.deepFreeze(species));
+		if (species.exists)
+			this.speciesCache.set(id, this.dex.deepFreeze(species));
 		return species;
 	}
 
@@ -585,38 +738,75 @@ export class DexSpecies {
 	getMovePool(id: ID, isNatDex = false): Set<ID> {
 		let eggMovesOnly = false;
 		let maxGen = this.dex.gen;
-		const gen3HMMoves = ['cut', 'fly', 'surf', 'strength', 'flash', 'rocksmash', 'waterfall', 'dive'];
-		const gen4HMMoves = ['cut', 'fly', 'surf', 'strength', 'rocksmash', 'waterfall', 'rockclimb'];
+		const gen3HMMoves = [
+			"cut",
+			"fly",
+			"surf",
+			"strength",
+			"flash",
+			"rocksmash",
+			"waterfall",
+			"dive",
+		];
+		const gen4HMMoves = [
+			"cut",
+			"fly",
+			"surf",
+			"strength",
+			"rocksmash",
+			"waterfall",
+			"rockclimb",
+		];
 		const movePool = new Set<ID>();
-		for (const {species, learnset} of this.getFullLearnset(id)) {
-			if (!eggMovesOnly) eggMovesOnly = this.eggMovesOnly(species, this.get(id));
+		for (const { species, learnset } of this.getFullLearnset(id)) {
+			if (!eggMovesOnly)
+				eggMovesOnly = this.eggMovesOnly(species, this.get(id));
 			for (const moveid in learnset) {
-				if (species.isNonstandard !== 'CAP') {
+				if (species.isNonstandard !== "CAP") {
 					if (gen4HMMoves.includes(moveid) && this.dex.gen >= 5) {
-						if (!learnset[moveid].some(source => parseInt(source.charAt(0)) >= 5 &&
-							parseInt(source.charAt(0)) <= this.dex.gen)) continue;
-					} else if (gen3HMMoves.includes(moveid) && this.dex.gen >= 4 &&
-						!learnset[moveid].some(source => parseInt(source.charAt(0)) >= 4 &&
-						parseInt(source.charAt(0)) <= this.dex.gen)) {
+						if (
+							!learnset[moveid].some(
+								(source) =>
+									parseInt(source.charAt(0)) >= 5 &&
+									parseInt(source.charAt(0)) <= this.dex.gen
+							)
+						)
+							continue;
+					} else if (
+						gen3HMMoves.includes(moveid) &&
+						this.dex.gen >= 4 &&
+						!learnset[moveid].some(
+							(source) =>
+								parseInt(source.charAt(0)) >= 4 &&
+								parseInt(source.charAt(0)) <= this.dex.gen
+						)
+					) {
 						continue;
 					}
 				}
 				if (eggMovesOnly) {
-					if (learnset[moveid].some(source => source.startsWith('9E'))) {
+					if (learnset[moveid].some((source) => source.startsWith("9E"))) {
 						movePool.add(moveid as ID);
 					}
 				} else if (maxGen >= 9) {
 					// Pokemon Home now strips learnsets on withdrawal
-					if (isNatDex || learnset[moveid].some(source => source.startsWith('9'))) {
+					if (
+						isNatDex ||
+						learnset[moveid].some((source) => source.startsWith("9"))
+					) {
 						movePool.add(moveid as ID);
 					}
 				} else {
-					if (learnset[moveid].some(source => parseInt(source.charAt(0)) <= maxGen)) {
+					if (
+						learnset[moveid].some(
+							(source) => parseInt(source.charAt(0)) <= maxGen
+						)
+					) {
 						movePool.add(moveid as ID);
 					}
 				}
-				if (moveid === 'sketch' && movePool.has('sketch' as ID)) {
-					if (species.isNonstandard === 'CAP') {
+				if (moveid === "sketch" && movePool.has("sketch" as ID)) {
+					if (species.isNonstandard === "CAP") {
 						// Given what this function is generally used for, adding all sketchable moves to Necturna and Necturine's
 						// movepools would be undesirable as it would be impossible to tell sketched moves apart from normal ones
 						// so any code calling this one will need to get and handle those moves separately themselves
@@ -625,7 +815,9 @@ export class DexSpecies {
 					// Smeargle time
 					// A few moves like Dark Void were made unSketchable in a generation later than when they were introduced
 					// However, this has only happened in a gen where transfer moves are unavailable
-					const sketchables = this.dex.moves.all().filter(m => !m.flags['nosketch'] && !m.isNonstandard);
+					const sketchables = this.dex.moves
+						.all()
+						.filter((m) => !m.flags["nosketch"] && !m.isNonstandard);
 					for (const move of sketchables) {
 						movePool.add(move.id);
 					}
@@ -637,17 +829,21 @@ export class DexSpecies {
 				// species can only evolve in this gen, so prevo can't have any moves
 				// from after that gen
 				if (this.dex.gen >= 9) eggMovesOnly = true;
-				if (this.dex.gen === 8 && species.evoRegion === 'Alola') maxGen = 7;
+				if (this.dex.gen === 8 && species.evoRegion === "Alola") maxGen = 7;
 			}
 		}
 		return movePool;
 	}
 
-	getFullLearnset(id: ID): (Learnset & {learnset: NonNullable<Learnset['learnset']>})[] {
+	getFullLearnset(
+		id: ID
+	): (Learnset & { learnset: NonNullable<Learnset["learnset"]> })[] {
 		const originalSpecies = this.get(id);
 		let species: Species | null = originalSpecies;
-		const out: (Learnset & {learnset: NonNullable<Learnset['learnset']>})[] = [];
-		const alreadyChecked: {[k: string]: boolean} = {};
+		const out: (Learnset & {
+			learnset: NonNullable<Learnset["learnset"]>;
+		})[] = [];
+		const alreadyChecked: { [k: string]: boolean } = {};
 
 		while (species?.name && !alreadyChecked[species.id]) {
 			alreadyChecked[species.id] = true;
@@ -673,7 +869,10 @@ export class DexSpecies {
 				// allow pokemon without learnsets.
 				return out;
 			}
-			if (species.prevo && this.getLearnsetData(toID(species.prevo)).learnset) {
+			if (
+				species.prevo &&
+				this.getLearnsetData(toID(species.prevo)).learnset
+			) {
 				species = this.get(toID(species.prevo));
 				continue;
 			}
@@ -691,21 +890,29 @@ export class DexSpecies {
 		// different learnsets. To prevent a leak, we make them show up as their
 		// base forme, but hardcode their learnsets into Rockruff-Dusk and
 		// Greninja-Ash
-		if (['Gastrodon', 'Pumpkaboo', 'Sinistea', 'Tatsugiri'].includes(species.baseSpecies) && species.forme) {
+		if (
+			["Gastrodon", "Pumpkaboo", "Sinistea", "Tatsugiri"].includes(
+				species.baseSpecies
+			) &&
+			species.forme
+		) {
 			return this.get(species.baseSpecies);
-		} else if (species.name === 'Lycanroc-Dusk') {
-			return this.get('Rockruff-Dusk');
+		} else if (species.name === "Lycanroc-Dusk") {
+			return this.get("Rockruff-Dusk");
 		} else if (species.prevo) {
 			// there used to be a check for Hidden Ability here, but apparently it's unnecessary
 			// Shed Skin Pupitar can definitely evolve into Unnerve Tyranitar
 			species = this.get(species.prevo);
 			if (species.gen > Math.max(2, this.dex.gen)) return null;
 			return species;
-		} else if (species.changesFrom && species.baseSpecies !== 'Kyurem') {
+		} else if (species.changesFrom && species.baseSpecies !== "Kyurem") {
 			// For Pokemon like Rotom and Necrozma whose movesets are extensions are their base formes
 			return this.get(species.changesFrom);
 		} else if (
-			checkingMoves && !species.prevo && species.baseSpecies && this.get(species.baseSpecies).prevo
+			checkingMoves &&
+			!species.prevo &&
+			species.baseSpecies &&
+			this.get(species.baseSpecies).prevo
 		) {
 			// For Pokemon like Cap Pikachu, who should be able to have egg moves in Gen 9
 			let baseEvo = this.get(species.baseSpecies);
@@ -727,7 +934,7 @@ export class DexSpecies {
 		let learnsetData = this.learnsetCache.get(id);
 		if (learnsetData) return learnsetData;
 		if (!this.dex.data.Learnsets.hasOwnProperty(id)) {
-			return new Learnset({exists: false}, this.get(id));
+			return new Learnset({ exists: false }, this.get(id));
 		}
 		learnsetData = new Learnset(this.dex.data.Learnsets[id], this.get(id));
 		this.learnsetCache.set(id, this.dex.deepFreeze(learnsetData));
