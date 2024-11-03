@@ -8077,6 +8077,7 @@ export const Pokedex: import("../sim/dex-species").SpeciesDataTable = {
     color: "Blue",
     evos: ["Gabite"],
     eggGroups: ["Monster", "Dragon"],
+	 cosmeticFormes: ["Gible-Halloween"],
   },
   gabite: {
     num: 444,
@@ -8091,6 +8092,7 @@ export const Pokedex: import("../sim/dex-species").SpeciesDataTable = {
     evoLevel: 24,
     evos: ["Garchomp"],
     eggGroups: ["Monster", "Dragon"],
+	 cosmeticFormes: ["Gabite-Halloween"],
   },
   garchomp: {
     num: 445,
@@ -8106,6 +8108,7 @@ export const Pokedex: import("../sim/dex-species").SpeciesDataTable = {
     eggGroups: ["Monster", "Dragon"],
     otherFormes: ["Garchomp-Mega"],
     formeOrder: ["Garchomp", "Garchomp-Mega"],
+	 cosmeticFormes: ["Garchomp-Halloween"],
   },
   garchompmega: {
     num: 445,
