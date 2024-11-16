@@ -564,6 +564,7 @@ export const Teams = new (class Teams {
       }
     }
 
+
     // moves
     for (let move of set.moves) {
       if (move.startsWith(`Hidden Power `) && move.charAt(13) !== "[") {

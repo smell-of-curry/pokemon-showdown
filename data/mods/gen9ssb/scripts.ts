@@ -8,6 +8,78 @@ export function enemyStaff(pokemon: Pokemon): string {
 	return foePokemon.name;
 }
 
+
+/** TODO: What happened to make this work weird?
+ * Assigns a new set to a Pokémon
+ * @param pokemon the Pokemon to assign the set to
+ * @param newSet the SSBSet to assign
+ */
+export function changeSet(context: Battle, pokemon: Pokemon, newSet: SSBSet, changeAbility = false) {
+	if (pokemon.transformed) return;
+	const evs: StatsTable = {
+		hp: newSet.evs?.hp || 0,
+		atk: newSet.evs?.atk || 0,
+		def: newSet.evs?.def || 0,
+		spa: newSet.evs?.spa || 0,
+		spd: newSet.evs?.spd || 0,
+		spe: newSet.evs?.spe || 0,
+	};
+	const ivs: StatsTable = {
+		hp: newSet.ivs?.hp || 31,
+		atk: newSet.ivs?.atk || 31,
+		def: newSet.ivs?.def || 31,
+		spa: newSet.ivs?.spa || 31,
+		spd: newSet.ivs?.spd || 31,
+		spe: newSet.ivs?.spe || 31,
+	};
+	pokemon.pokemonSet.evs = evs;
+	pokemon.pokemonSet.ivs = ivs;
+	if (newSet.nature) pokemon.pokemonSet.nature = Array.isArray(newSet.nature) ? context.sample(newSet.nature) : newSet.nature;
+	const oldGender = pokemon.pokemonSet.gender;
+	if ((pokemon.pokemonSet.gender !== newSet.gender) && !Array.isArray(newSet.gender)) {
+		pokemon.pokemonSet.gender = newSet.gender;
+		// @ts-ignore Shut up sharp_claw wanted this
+		pokemon.gender = newSet.gender;
+	}
+	const oldShiny = pokemon.pokemonSet.shiny;
+	pokemon.pokemonSet.shiny = (typeof newSet.shiny === 'number') ? context.randomChance(1, newSet.shiny) : !!newSet.shiny;
+	let percent = (pokemon.hp / pokemon.baseMaxhp);
+	if (newSet.species === 'Shedinja') percent = 1;
+	pokemon.formeChange(newSet.species, context.effect, true);
+	if (!pokemon.terastallized && newSet.teraType) {
+		const allTypes = context.dex.types.names();
+		pokemon.teraType = newSet.teraType === 'Any' ? context.sample(allTypes) :
+			Array.isArray(newSet.teraType) ? context.sample(newSet.teraType) : newSet.teraType;
+	}
+	const details = pokemon.species.name + (pokemon.level === 100 ? '' : ', L' + pokemon.level) +
+		(pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.pokemonSet.shiny ? ', shiny' : '');
+	if (oldShiny !== pokemon.pokemonSet.shiny || oldGender !== pokemon.gender) context.add('replace', pokemon, details);
+	if (changeAbility) pokemon.setAbility(newSet.ability as string, undefined, true);
+
+	pokemon.baseMaxhp = pokemon.species.name === 'Shedinja' ? 1 : Math.floor(Math.floor(
+		2 * pokemon.species.baseStats.hp + pokemon.pokemonSet.ivs.hp + Math.floor(pokemon.pokemonSet.evs.hp / 4) + 100
+	) * pokemon.level / 100 + 10);
+	const newMaxHP = pokemon.baseMaxhp;
+	pokemon.hp = Math.round(newMaxHP * percent);
+	pokemon.maxhp = newMaxHP;
+	context.add('-heal', pokemon, pokemon.getHealth, '[silent]');
+	if (pokemon.item) {
+		let item = newSet.item;
+		if (typeof item !== 'string') item = item[context.random(item.length)];
+		if (context.toID(item) !== (pokemon.item || pokemon.lastItem)) pokemon.setItem(item);
+	}
+	if (!pokemon.m.datacorrupt) {
+		const newMoves = changeMoves(context, pokemon, newSet.moves.concat(newSet.signatureMove));
+		pokemon.moveSlots = newMoves;
+		// Necessary so pokemon doesn't get 8 moves
+		(pokemon as any).baseMoveSlots = newMoves;
+	}
+	pokemon.canMegaEvo = context.actions.canMegaEvo(pokemon);
+	pokemon.canUltraBurst = context.actions.canUltraBurst(pokemon);
+	pokemon.canTerastallize = (pokemon.canTerastallize === null) ? null : context.actions.canTerastallize(pokemon);
+	context.add('message', `${pokemon.name} changed form!`);
+}
+
 export const PSEUDO_WEATHERS = [
 	// Normal pseudo weathers
 	'fairylock', 'gravity', 'iondeluge', 'magicroom', 'mudsport', 'trickroom', 'watersport', 'wonderroom',

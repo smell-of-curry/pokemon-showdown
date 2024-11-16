@@ -724,39 +724,50 @@ export class DexMoves {
   }
 
   getByID(id: ID): Move {
-    if (id === "") return EMPTY_MOVE;
-    let move = this.moveCache.get(id);
-    if (move) return move;
-    if (this.dex.data.Aliases.hasOwnProperty(id)) {
-      move = this.get(this.dex.data.Aliases[id]);
-      if (move.exists) {
-        this.moveCache.set(id, move);
-      }
-      return move;
-    }
-    if (id.startsWith("hiddenpower")) {
-      id = /([a-z]*)([0-9]*)/.exec(id)![1] as ID;
-    }
-    if (id && this.dex.data.Moves.hasOwnProperty(id)) {
-      const moveData = this.dex.data.Moves[id] as any;
-      const moveTextData = this.dex.getDescs("Moves", id, moveData);
-      move = new DataMove({
-        name: id,
-        ...moveData,
-        ...moveTextData,
-      });
-      if (move.gen > this.dex.gen) {
-        (move as any).isNonstandard = "Future";
-      }
-    } else {
-      move = new DataMove({
-        name: id,
-        exists: false,
-      });
-    }
-    if (move.exists) this.moveCache.set(id, this.dex.deepFreeze(move));
-    return move;
-  }
+	if (id === '') return EMPTY_MOVE;
+	let move = this.moveCache.get(id);
+	if (move) return move;
+	if (this.dex.data.Aliases.hasOwnProperty(id)) {
+		move = this.get(this.dex.data.Aliases[id]);
+		if (move.exists) {
+			this.moveCache.set(id, move);
+		}
+		return move;
+	}
+	if (id.startsWith('hiddenpower')) {
+		id = /([a-z]*)([0-9]*)/.exec(id)![1] as ID;
+	}
+	if (id && this.dex.data.Moves.hasOwnProperty(id)) {
+		const moveData = this.dex.data.Moves[id] as any;
+		const moveTextData = this.dex.getDescs('Moves', id, moveData);
+		move = new DataMove({
+			name: id,
+			...moveData,
+			...moveTextData,
+		});
+		if (move.gen > this.dex.gen) {
+			(move as any).isNonstandard = 'Future';
+		}
+		if (this.dex.parentMod) {
+			// If move is exactly identical to parentMod's move, reuse parentMod's copy
+			const parentMod = this.dex.mod(this.dex.parentMod);
+			if (moveData === parentMod.data.Moves[id]) {
+				const parentMove = parentMod.moves.getByID(id);
+				if (move.isNonstandard === parentMove.isNonstandard &&
+					 move.desc === parentMove.desc &&
+					 move.shortDesc === parentMove.shortDesc) {
+					move = parentMove;
+				}
+			}
+		}
+	} else {
+		move = new DataMove({
+			name: id, exists: false,
+		});
+	}
+	if (move.exists) this.moveCache.set(id, this.dex.deepFreeze(move));
+	return move;
+}
 
   all(): readonly Move[] {
     if (this.allCache) return this.allCache;
