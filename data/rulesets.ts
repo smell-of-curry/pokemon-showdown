@@ -6476,7 +6476,6 @@ export const Rulesets: import("../sim/dex-formats").FormatDataTable = {
       if (typeMod) return -typeMod;
     },
   },
-
   minsourcegen: {
     effectType: "ValidatorRule",
     name: "Min Source Gen",
@@ -6494,7 +6493,6 @@ export const Rulesets: import("../sim/dex-formats").FormatDataTable = {
       }
     },
   },
-
   omunobtainablemoves: {
     effectType: "ValidatorRule",
     name: "OM Unobtainable Moves",
