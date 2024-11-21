@@ -1752,7 +1752,6 @@ export class Pokemon {
 				(this.pokemonSet.shiny ? ", shiny" : "");
 			let details = (this.illusion || this).details;
 			if (this.terastallized) details += `, tera:${this.terastallized}`;
-			this.battle.add("detailschange", this, details);
 			if (!source) {
 				// Tera forme
 				// Ogerpon/Terapagos text goes here
@@ -1790,6 +1789,8 @@ export class Pokemon {
 				// Shaymin-Sky -> Shaymin
 				this.battle.add("-formechange", this, species.name, message);
 			}
+			// COBBLED: Send Details changed after, so mega effect can look good.
+			this.battle.add("detailschange", this, details);
 		} else {
 			if (source?.effectType === "Ability") {
 				this.battle.add(

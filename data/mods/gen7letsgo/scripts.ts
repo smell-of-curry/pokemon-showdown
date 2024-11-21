@@ -33,8 +33,8 @@ export const Scripts: ModdedBattleScriptsData = {
 			const speciesid = pokemon.canMegaEvo || pokemon.canMegaEvoX || pokemon.canMegaEvoY;
 			if (!speciesid) return false;
 
-			pokemon.formeChange(speciesid, null, true);
 			this.battle.add('-mega', pokemon, this.dex.species.get(speciesid).baseSpecies);
+			pokemon.formeChange(speciesid, null, true);
 
 			// Limit one mega evolution
 			for (const ally of pokemon.side.pokemon) {

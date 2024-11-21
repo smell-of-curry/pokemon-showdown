@@ -171,7 +171,6 @@ export const Scripts: ModdedBattleScriptsData = {
 				this.baseSpecies = rawSpecies;
 				this.details = species.name + (this.level === 100 ? '' : ', L' + this.level) +
 					(this.gender === '' ? '' : ', ' + this.gender) + (this.pokemonSet.shiny ? ', shiny' : '');
-				this.battle.add('detailschange', this, (this.illusion || this).details);
 				if (source.effectType === 'Item') {
 					this.canTerastallize = null; // National Dex behavior
 					if (source.zMove) {
@@ -192,6 +191,8 @@ export const Scripts: ModdedBattleScriptsData = {
 					// Shaymin-Sky -> Shaymin
 					this.battle.add('-formechange', this, species.name, message);
 				}
+				// COBBLED: Send Details changed after, so mega effect can look good.
+				this.battle.add('detailschange', this, (this.illusion || this).details);
 			} else {
 				if (source.effectType === 'Ability') {
 					this.battle.add('-formechange', this, species.name, message, `[from] ability: ${source.name}`);
