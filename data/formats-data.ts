@@ -1377,7 +1377,7 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 		tier: "NFE",
 	},
 	yanmega: {
-		tier: "RU",
+		tier: "RUBL",
 		doublesTier: "(DUU)",
 		natDexTier: "RU",
 	},
@@ -3715,7 +3715,7 @@ export const FormatsData: import('../sim/dex-species').SpeciesFormatsDataTable =
 	greninja: {
 		tier: "UU",
 		doublesTier: "(DUU)",
-		natDexTier: "UU",
+		natDexTier: "UUBL",
 	},
 	greninjaash: {
 		isNonstandard: "Past",
