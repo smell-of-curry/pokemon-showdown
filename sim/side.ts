@@ -806,9 +806,10 @@ export class Side {
 
 		// Mega evolution
 
-		const mega = event === "mega";
-		const megax = event === "megax";
-		const megay = event === "megay";
+		const mixandmega = this.battle.format.mod === 'mixandmega';
+		const mega = (event === 'mega');
+		const megax = (event === 'megax');
+		const megay = (event === 'megay');
 		if (mega && !pokemon.canMegaEvo) {
 			return this.emitChoiceError(
 				`Can't move: ${pokemon.name} can't mega evolve`
@@ -824,10 +825,8 @@ export class Side {
 				`Can't move: ${pokemon.name} can't mega evolve Y`
 			);
 		}
-		if ((mega || megax || megay) && this.choice.mega) {
-			return this.emitChoiceError(
-				`Can't move: You can only mega-evolve once per battle`
-			);
+		if ((mega || megax || megay) && this.choice.mega && !mixandmega) {
+			return this.emitChoiceError(`Can't move: You can only mega-evolve once per battle`);
 		}
 		const ultra = event === "ultra";
 		if (ultra && !pokemon.canUltraBurst) {
@@ -835,10 +834,8 @@ export class Side {
 				`Can't move: ${pokemon.name} can't ultra burst`
 			);
 		}
-		if (ultra && this.choice.ultra) {
-			return this.emitChoiceError(
-				`Can't move: You can only ultra burst once per battle`
-			);
+		if (ultra && this.choice.ultra && !mixandmega) {
+			return this.emitChoiceError(`Can't move: You can only ultra burst once per battle`);
 		}
 		let dynamax = event === "dynamax";
 		const canDynamax =
