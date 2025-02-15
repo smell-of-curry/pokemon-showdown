@@ -1375,18 +1375,29 @@ export class Side {
 					break;
 				case "bag-item":
 					let bagTargetLoc: number | undefined = undefined;
+					const bagError = () =>
+						this.emitChoiceError(
+							`Data does not match regrex "data": ${data}`
+						);
 					if (
 						/\s(?:-|\+)?[1-6]$/.test(data) &&
 						toID(data) !== "conversion2"
 					) {
-						if (bagTargetLoc !== undefined) return error();
+						if (bagTargetLoc !== undefined) return bagError();
 						bagTargetLoc = parseInt(data.slice(-2));
 						data = data.slice(0, -2).trim();
 					}
 					this.processBagItem(data, bagTargetLoc);
-					this.choosePass();
+					this.choice.actions.push({
+						choice: "pass",
+					} as ChosenAction);
 					break;
-
+				case "used-ball":
+					// Player used a ball, but it failed. We cant use 'pass' as it would fail.
+					this.choice.actions.push({
+						choice: "pass",
+					} as ChosenAction);
+					break;
 				case "auto":
 				case "default":
 					this.autoChoose();

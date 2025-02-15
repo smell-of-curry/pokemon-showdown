@@ -1361,7 +1361,7 @@ export class Pokemon {
 	}
 
 	getSwitchRequestData(forAlly?: boolean) {
-		const entry: AnyObject = {
+		const entry: ISidePokemonRequest = {
 			ident: `${this.getSlot()}: ${this.name}`, // CHANGED BECAUSE THIS MAKES MORE SENSE USED TO BE: this.fullname
 			details: this.details,
 			types: this.getTypes(),
@@ -1373,7 +1373,7 @@ export class Pokemon {
 				def: this.baseStoredStats["def"],
 				spa: this.baseStoredStats["spa"],
 				spd: this.baseStoredStats["spd"],
-				spe: this.baseStoredStats["spe"],
+				spe: this.baseStoredStats["spe"]
 			},
 			moves: this[forAlly ? "baseMoves" : "moves"].map((move) => {
 				if (move === "hiddenpower") {
@@ -1401,6 +1401,7 @@ export class Pokemon {
 			volatiles: this.volatiles,
 			trapped: this.trapped,
 			species: this.species,
+			happiness: this.happiness
 		};
 		if (this.battle.gen > 6) entry.ability = this.ability;
 		if (this.battle.gen >= 9) {

@@ -2630,10 +2630,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		desc: `Randomized teams of Pok&eacute;mon for a generated Smogon tier with sets that are competitively viable.`,
 		mod: 'gen9',
 		team: 'randomFactory',
-		ruleset: ['Standard'],
-		onBegin() {
-			this.add(`raw|<div class="broadcast-blue"><b>Battle Factory Tier: ${this.teamGenerator.factoryTier}</b></div>`);
-		},
+		ruleset: ['Standard']
 	},
 	{
 		name: "[Gen 9] BSS Factory",
@@ -2650,7 +2647,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		ruleset: ['Standard Draft', '!Team Preview'],
 		onBegin() {
 			for (const pokemon of this.getAllPokemon()) {
-				if (!(pokemon.set as any).teraCaptain) pokemon.canTerastallize = null;
+				if (!(pokemon.pokemonSet as any).teraCaptain) pokemon.canTerastallize = null;
 			}
 			this.add('rule', 'Tera Captain Clause: Only Tera Captains can Terastallize');
 		},
@@ -2665,7 +2662,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 			for (const side of this.sides) {
 				let buf = ``;
 				for (const pokemon of side.pokemon) {
-					if (!(pokemon.set as any).teraCaptain) continue;
+					if (!(pokemon.pokemonSet as any).teraCaptain) continue;
 					buf += buf ? ` / ` : `raw|${side.name}'s Tera Captains:<br />`;
 					buf += `<psicon pokemon="${pokemon.species.id}" /><psicon type="${pokemon.teraType}" />`;
 				}
@@ -2924,10 +2921,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		mod: 'gen8',
 		team: 'randomFactory',
 		searchShow: false,
-		ruleset: ['Standard', 'Dynamax Clause'],
-		onBegin() {
-			this.add(`raw|<div class="broadcast-blue"><b>Battle Factory Tier: ${this.teamGenerator.factoryTier}</b></div>`);
-		},
+		ruleset: ['Standard', 'Dynamax Clause']
 	},
 	{
 		name: "[Gen 8] BSS Factory",
@@ -2979,10 +2973,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		mod: 'gen7',
 		team: 'randomFactory',
 		searchShow: false,
-		ruleset: ['Obtainable', 'Sleep Clause Mod', 'Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Mega Rayquaza Clause'],
-		onBegin() {
-			this.add(`raw|<div class="broadcast-blue"><b>Battle Factory Tier: ${this.teamGenerator.factoryTier}</b></div>`);
-		},
+		ruleset: ['Obtainable', 'Sleep Clause Mod', 'Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Mega Rayquaza Clause']
 	},
 	{
 		name: "[Gen 7] BSS Factory",
@@ -3022,10 +3013,7 @@ export const Formats: import('../sim/dex-formats').FormatList = [
 		team: 'randomFactory',
 		searchShow: false,
 		challengeShow: false,
-		ruleset: ['Obtainable', 'Sleep Clause Mod', 'Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Mega Rayquaza Clause'],
-		onBegin() {
-			this.add(`raw|<div class="broadcast-blue"><b>Battle Factory Tier: ${this.teamGenerator.factoryTier}</b></div>`);
-		},
+		ruleset: ['Obtainable', 'Sleep Clause Mod', 'Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Mega Rayquaza Clause']
 	},
 	{
 		name: "[Gen 5] Random Battle",

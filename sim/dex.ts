@@ -43,6 +43,7 @@ import { Scripts as Gen1Scripts } from "../data/mods/gen1/scripts";
 import { Scripts as Gen1JpnScripts } from "../data/mods/gen1jpn/scripts";
 import { Scripts as Gen1StadiumScripts } from "../data/mods/gen1stadium/scripts";
 import { Scripts as Gen2Scripts } from "../data/mods/gen2/scripts";
+import { Scripts as Gen2SDoublescripts } from "../data/mods/gen2doubles/scripts";
 import { Scripts as Gen2Stadium2Scripts } from "../data/mods/gen2stadium2/scripts";
 import { Scripts as Gen3Scripts } from "../data/mods/gen3/scripts";
 import { Scripts as Gen4Scripts } from "../data/mods/gen4/scripts";
@@ -61,6 +62,7 @@ import { Scripts as Gen8Dlc1Scripts } from "../data/mods/gen8dlc1/scripts";
 import { Scripts as Gen8LinkedScripts } from "../data/mods/gen8linked/scripts";
 import { Scripts as Gen9preDLCScripts } from "../data/mods/gen9predlc/scripts";
 import { Scripts as Gen9SSBScripts } from "../data/mods/gen9ssb/scripts";
+import { Scripts as LittleColosseumScripts } from "../data/mods/littlecolosseum/scripts";
 import { Scripts as MixAndMegaScripts } from "../data/mods/mixandmega/scripts";
 import { Scripts as PartnersInCrimeScripts } from "../data/mods/partnersincrime/scripts";
 import { Scripts as PassiveAggressiveScripts } from "../data/mods/partnersincrime/scripts";
@@ -177,6 +179,7 @@ const MOD_NAMES = [
 	"gen1jpn",
 	"gen1stadium",
 	"gen2",
+	"gen2doubles",
 	"gen2stadium2",
 	"gen3",
 	"gen4",
@@ -196,6 +199,7 @@ const MOD_NAMES = [
 	// "gen9dlc1",
 	"gen9predlc",
 	"gen9ssb",
+	"littlecolosseum",
 	"mixandmega",
 	"moderngen2",
 	"partnersincrime",
@@ -218,6 +222,7 @@ const MOD_SCRIPTS: {
 	gen1jpn: Gen1JpnScripts,
 	gen1stadium: Gen1StadiumScripts,
 	gen2: Gen2Scripts,
+	gen2doubles: Gen2SDoublescripts,
 	gen2stadium2: Gen2Stadium2Scripts,
 	gen3: Gen3Scripts,
 	gen4: Gen4Scripts,
@@ -236,6 +241,7 @@ const MOD_SCRIPTS: {
 	gen8linked: Gen8LinkedScripts,
 	gen9predlc: Gen9preDLCScripts,
 	gen9ssb: Gen9SSBScripts,
+	littlecolosseum: LittleColosseumScripts,
 	mixandmega: MixAndMegaScripts,
 	partnersincrime: PartnersInCrimeScripts,
 	passiveaggressive: PassiveAggressiveScripts,

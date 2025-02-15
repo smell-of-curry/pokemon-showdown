@@ -1043,6 +1043,7 @@ interface ISidePokemonRequest {
 	reviving?: boolean;
 	teraType?: string;
 	terastallized?: string;
+	happiness: number
 }
 
 interface IShowdownRequest {

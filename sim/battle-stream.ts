@@ -39,6 +39,21 @@ function splitFirst(str: string, delimiter: string, limit = 1) {
 	return splitStr;
 }
 
+/**
+ * Re-usable function: create an integer range from start..end inclusive.
+ */
+export function range(start: number, end?: number, step = 1): number[] {
+	if (end === undefined) {
+		end = start;
+		start = 0;
+	}
+	const r: number[] = [];
+	for (; start <= end; start += step) {
+		r.push(start);
+	}
+	return r;
+}
+
 export class BattleStream extends Streams.ObjectReadWriteStream<string> {
 	debug: boolean;
 	noCatch: boolean;
@@ -381,13 +396,13 @@ export abstract class BattlePlayer {
 		if (!line.startsWith("|")) return;
 		const [cmd, rest] = splitFirst(line.slice(1), "|");
 		if (cmd === "request") return this.receiveRequest(JSON.parse(rest));
-		if (cmd === "error") return this.receiveError(new Error(rest));
+		if (cmd === "error") return this.receiveError(rest);
 		this.log.push(line);
 	}
 
 	abstract receiveRequest(request: AnyObject): void;
 
-	receiveError(error: Error) {
+	receiveError(error: string) {
 		throw error;
 	}
 

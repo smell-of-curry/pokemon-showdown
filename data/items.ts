@@ -1,4 +1,6 @@
-export const Items: import('../sim/dex-items').ItemDataTable = {
+import { ItemData } from '../sim/dex-items';
+
+export const Items = {
 	abilityshield: {
 		name: "Ability Shield",
 		spritenum: 746,
@@ -7653,4 +7655,4 @@ export const Items: import('../sim/dex-items').ItemDataTable = {
 		gen: 8,
 		isNonstandard: "CAP",
 	},
-};
+} as const satisfies Record<IDEntry, ItemData>;
