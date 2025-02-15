@@ -42,7 +42,6 @@ import { Scripts as FullPotentialScripts } from "../data/mods/fullpotential/scri
 import { Scripts as Gen1Scripts } from "../data/mods/gen1/scripts";
 import { Scripts as Gen1JpnScripts } from "../data/mods/gen1jpn/scripts";
 import { Scripts as Gen1StadiumScripts } from "../data/mods/gen1stadium/scripts";
-import { Scripts as Gen1RBYCapScripts } from "../data/mods/gen1rbycap/scripts";
 import { Scripts as Gen2Scripts } from "../data/mods/gen2/scripts";
 import { Scripts as Gen2Stadium2Scripts } from "../data/mods/gen2stadium2/scripts";
 import { Scripts as Gen3Scripts } from "../data/mods/gen3/scripts";
@@ -52,7 +51,6 @@ import { Scripts as Gen5Scripts } from "../data/mods/gen5/scripts";
 import { Scripts as Gen5Bw1Scripts } from "../data/mods/gen5bw1/scripts";
 import { Scripts as Gen6Scripts } from "../data/mods/gen6/scripts";
 import { Scripts as Gen6XyScripts } from "../data/mods/gen6xy/scripts";
-import { Scripts as Gen6MegaRevisitedScripts } from "../data/mods/gen6megasrevisited/scripts";
 import { Scripts as Gen7Scripts } from "../data/mods/gen7/scripts";
 import { Scripts as Gen7LetsGoScripts } from "../data/mods/gen7letsgo/scripts";
 import { Scripts as Gen7SmScripts } from "../data/mods/gen7sm/scripts";
@@ -178,7 +176,6 @@ const MOD_NAMES = [
 	"gen1",
 	"gen1jpn",
 	"gen1stadium",
-	"gen1rbycap",
 	"gen2",
 	"gen2stadium2",
 	"gen3",
@@ -188,7 +185,6 @@ const MOD_NAMES = [
 	"gen5bw1",
 	"gen6",
 	"gen6xy",
-	"gen6megasrevisited",
 	"gen7",
 	"gen7letsgo",
 	"gen7sm",
@@ -221,7 +217,6 @@ const MOD_SCRIPTS: {
 	gen1: Gen1Scripts,
 	gen1jpn: Gen1JpnScripts,
 	gen1stadium: Gen1StadiumScripts,
-	gen1rbycap: Gen1RBYCapScripts,
 	gen2: Gen2Scripts,
 	gen2stadium2: Gen2Stadium2Scripts,
 	gen3: Gen3Scripts,
@@ -231,7 +226,6 @@ const MOD_SCRIPTS: {
 	gen5bw1: Gen5Bw1Scripts,
 	gen6: Gen6Scripts,
 	gen6xy: Gen6XyScripts,
-	gen6megasrevisited: Gen6MegaRevisitedScripts,
 	gen7: Gen7Scripts,
 	gen7letsgo: Gen7LetsGoScripts,
 	gen7sm: Gen7SmScripts,
@@ -565,9 +559,7 @@ export class ModdedDex {
 
 	dataSearch(
 		target: string,
-		searchIn?:
-			| ("Pokedex" | "Moves" | "Abilities" | "Items" | "Natures")[]
-			| null,
+		searchIn?: ('Pokedex' | 'Moves' | 'Abilities' | 'Items' | 'Natures' | 'TypeChart')[] | null,
 		isInexact?: boolean
 	): AnyObject[] | null {
 		if (!target) return null;
@@ -581,18 +573,10 @@ export class ModdedDex {
 		];
 
 		const searchObjects = {
-			Pokedex: "species",
-			Moves: "moves",
-			Abilities: "abilities",
-			Items: "items",
-			Natures: "natures",
+			Pokedex: 'species', Moves: 'moves', Abilities: 'abilities', Items: 'items', Natures: 'natures', TypeChart: 'types',
 		} as const;
 		const searchTypes = {
-			Pokedex: "pokemon",
-			Moves: "move",
-			Abilities: "ability",
-			Items: "item",
-			Natures: "nature",
+			Pokedex: 'pokemon', Moves: 'move', Abilities: 'ability', Items: 'item', Natures: 'nature', TypeChart: 'type',
 		} as const;
 		let searchResults: AnyObject[] | null = [];
 		for (const table of searchIn) {

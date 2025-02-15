@@ -9,7 +9,7 @@
 
 import {Dex, toID} from './dex';
 import type {MoveSource} from './dex-species';
-import {Utils} from '../lib';
+import {Utils} from '../lib/utils';
 import {Tags} from '../data/tags';
 import {Teams} from './teams';
 import {PRNG} from './prng';
@@ -515,8 +515,11 @@ export class TeamValidator {
 				tierSpecies = outOfBattleSpecies;
 			}
 		}
-		if (ability.id === 'owntempo' && species.id === 'rockruff') {
-			tierSpecies = outOfBattleSpecies = dex.species.get('rockruffdusk');
+		if (ability.id === 'owntempo' && toID(species.baseSpecies) === 'rockruff') {
+			outOfBattleSpecies = dex.species.get('rockruffdusk');
+			if (ruleTable.has('obtainableformes')) {
+				tierSpecies = outOfBattleSpecies;
+			}
 		}
 
 		if (ruleTable.has('obtainableformes')) {
@@ -768,6 +771,10 @@ export class TeamValidator {
 		problem = this.checkNature(set, nature, setHas);
 		if (problem) problems.push(problem);
 
+		if (set.shiny && dex.gen === 1) {
+			set.shiny = false;
+		}
+
 		if (set.moves && Array.isArray(set.moves)) {
 			set.moves = set.moves.filter(val => val);
 		}
@@ -827,12 +834,14 @@ export class TeamValidator {
 			}
 		}
 		let isUnderleveled;
+		let requiredLevel;
 		if (!isFromRBYEncounter && ruleTable.has('obtainablemisc')) {
 			// FIXME: Event pokemon given at a level under what it normally can be attained at gives a false positive
 			let evoSpecies = species;
 			while (evoSpecies.prevo) {
 				if (set.level < (evoSpecies.evoLevel || 0)) {
 					isUnderleveled = evoSpecies.name;
+					requiredLevel = evoSpecies.evoLevel;
 					break;
 				}
 				evoSpecies = dex.species.get(evoSpecies.prevo);
@@ -851,8 +860,8 @@ export class TeamValidator {
 			let checkGoLegality = false;
 			let skippedEggSource = true;
 			const legalSources = [];
-			let evoSpecies = species;
 			if (isUnderleveled && !setSources.sources.length) {
+				let evoSpecies = species;
 				while (evoSpecies.prevo) {
 					const eventData = dex.species.getLearnsetData(evoSpecies.id).eventData;
 					if (eventData) {
@@ -884,7 +893,7 @@ export class TeamValidator {
 			if (legalSources.length) {
 				setSources.sources = legalSources;
 			} else if (isUnderleveled) {
-				problems.push(`${name} must be at least level ${evoSpecies.evoLevel} to be evolved.`);
+				problems.push(`${name} must be at least level ${requiredLevel} to be evolved.`);
 				const firstEventSource = setSources.sources.filter(source => source.charAt(1) === 'S')[0];
 				if (firstEventSource) {
 					const eventProblems = this.validateSource(
@@ -892,7 +901,7 @@ export class TeamValidator {
 					);
 					if (eventProblems) problems.push(...eventProblems);
 				}
-				if (pokemonGoProblems) {
+				if (pokemonGoProblems && pokemonGoProblems.length) {
 					problems.push(`It failed to validate as a Pokemon from Pokemon GO because:`);
 					for (const pokemonGoProblem of pokemonGoProblems) {
 						problems.push(pokemonGoProblem);
@@ -1664,6 +1673,9 @@ export class TeamValidator {
 		if (species.baseSpecies === "Greninja" && toID(set.ability) === 'battlebond') {
 			set.species = "Greninja-Bond";
 		}
+		if (species.baseSpecies === "Rockruff" && toID(set.ability) === 'owntempo') {
+			set.species = "Rockruff-Dusk";
+		}
 
 		if (species.baseSpecies === "Unown" && dex.gen === 2) {
 			let resultBinary = '';
@@ -1711,6 +1723,9 @@ export class TeamValidator {
 		}
 		if (tierSpecies.baseSpecies === 'Greninja' && toID(set.ability) === 'battlebond') {
 			setHas['pokemon:greninjabond'] = true;
+		}
+		if (tierSpecies.baseSpecies === 'Rockruff' && toID(set.ability) === 'owntempo') {
+			setHas['pokemon:rockruffdusk'] = true;
 		}
 
 		const tier = tierSpecies.tier === '(PU)' ? 'ZU' : tierSpecies.tier === '(NU)' ? 'PU' : tierSpecies.tier;
@@ -2615,15 +2630,12 @@ export class TeamValidator {
 					if (learnedGen === dex.gen && learned.charAt(1) !== 'R') {
 						// current-gen level-up, TM or tutor moves:
 						//   always available
-						if (!(learnedGen >= 8 && learned.charAt(1) === 'E') && babyOnly) {
-							if (setSources.isFromPokemonGo && species.evoLevel) {
-								cantLearnReason = `is from a prevo, which is incompatible with its Pokemon GO origin.`;
-								continue;
-							} else {
-								setSources.babyOnly = babyOnly;
-							}
+						if (!(learnedGen >= 8 && learned.charAt(1) === 'E') && babyOnly &&
+							setSources.isFromPokemonGo && species.evoLevel) {
+							cantLearnReason = `is from a prevo, which is incompatible with its Pokemon GO origin.`;
+							continue;
 						}
-						if (!moveSources.moveEvoCarryCount && !setSources.babyOnly) return null;
+						if (!moveSources.moveEvoCarryCount && !babyOnly) return null;
 					}
 					// past-gen level-up, TM, or tutor moves:
 					//   available as long as the source gen was or was before this gen
@@ -2674,7 +2686,9 @@ export class TeamValidator {
 					// DW moves:
 					//   only if that was the source
 					moveSources.add(learned + species.id);
-					moveSources.dreamWorldMoveCount++;
+					// If a DW move can be learned through some means other than DW,
+					// it should not be treated as a DW move
+					if (!moveSources.sourcesBefore) moveSources.dreamWorldMoveCount++;
 				} else if (learned.charAt(1) === 'V' && this.minSourceGen < learnedGen) {
 					// Virtual Console or Let's Go transfer moves:
 					//   only if that was the source

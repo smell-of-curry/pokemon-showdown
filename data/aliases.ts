@@ -90,8 +90,8 @@ export const Aliases: import('../sim/dex').AliasesTable = {
 	gen6ag: "[Gen 6] Anything Goes",
 	crossevo: "[Gen 9] Cross Evolution",
 	mayhem: "[Gen 9] Random Battle Mayhem",
-	omotm: "[Gen 9] Twisted Dimension",
-	lcotm: "[Gen 9] Mix and Mega Doubles",
+	omotm: "[Gen 9] Alphabet Cup",
+	lcotm: "[Gen 9] 1-2 Switch",
 
 	// mega evos
 	fabio: "Ampharos-Mega",
@@ -208,6 +208,10 @@ export const Aliases: import('../sim/dex').AliasesTable = {
 	eiscuen: "Eiscue-Noice",
 	eternalfloette: "Floette-Eternal",
 	eternamax: "Eternatus-Eternamax",
+	genesectwater: "Genesect-Douse",
+	genesectelectric: "Genesect-Shock",
+	genesectfire: "Genesect-Burn",
+	genesectice: "Genesect-Chill",
 	girao: "Giratina-Origin",
 	giratinao: "Giratina-Origin",
 	gourgeists: "Gourgeist-Small",
@@ -455,9 +459,6 @@ export const Aliases: import('../sim/dex').AliasesTable = {
 	ogerponteal: "Ogerpon",
 	ogerpontealmask: "Ogerpon",
 	terapagosbaby: "Terapagos",
-
-	// event formes
-	rockruffdusk: "Rockruff",
 
 	// totem formes
 	raticatet: "Raticate-Alola-Totem",
@@ -733,6 +734,7 @@ export const Aliases: import('../sim/dex').AliasesTable = {
 	booster: "Booster Energy",
 	boots: "Heavy-Duty Boots",
 	cb: "Choice Band",
+	clam: "Clear Amulet",
 	cloak: "Covert Cloak",
 	dice: "Loaded Dice",
 	ebelt: "Expert Belt",

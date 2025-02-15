@@ -50,11 +50,8 @@ export class MultiRandomRunner {
 
     this.totalGames = options.totalGames;
 
-    this.prng =
-      options.prng && !Array.isArray(options.prng)
-        ? options.prng
-        : new PRNG(options.prng as PRNGSeed);
-    this.options.prng = this.prng;
+	 this.prng = PRNG.get(options.prng);
+	 this.options.prng = this.prng;
 
     this.format = options.format;
     this.cycle = !!options.cycle;
@@ -77,17 +74,15 @@ export class MultiRandomRunner {
         games = [];
       }
 
-      const seed = this.prng.seed;
-      const game = new Runner({ format, ...this.options })
-        .run()
-        .catch((err) => {
-          failures++;
-          console.error(
-            `Run \`node tools/simulate multi 1 --format=${format} --seed=${seed.join()}\` ` +
-              `to debug (optionally with \`--output\` and/or \`--input\` for more info):\n`,
-            err
-          );
-        });
+		const seed = this.prng.getSeed();
+		const game = new Runner({format, ...this.options}).run().catch(err => {
+			failures++;
+			console.error(
+				`Run \`node tools/simulate multi 1 --format=${format} --seed=${seed}\` ` +
+				`to debug (optionally with \`--output\` and/or \`--input\` for more info):\n`,
+				err
+			);
+		});
 
       if (!this.isAsync) await game;
       games.push(game);

@@ -1,5 +1,5 @@
 import {assignMissingFields, BasicEffect, toID} from './dex-data';
-import {Utils} from '../lib';
+import {Utils} from '../lib/utils';
 import {isDeepStrictEqual} from 'node:util';
 
 interface SpeciesAbility {
@@ -517,7 +517,7 @@ export class DexSpecies {
 
 		if (this.dex.data.Aliases.hasOwnProperty(id)) {
 			if (this.dex.data.FormatsData.hasOwnProperty(id)) {
-				// special event ID, like Rockruff-Dusk
+				// special event ID
 				const baseId = toID(this.dex.data.Aliases[id]);
 				species = new Species({
 					...this.dex.data.Pokedex[baseId],
@@ -907,8 +907,6 @@ export class DexSpecies {
 			species.forme
 		) {
 			return this.get(species.baseSpecies);
-		} else if (species.name === "Lycanroc-Dusk") {
-			return this.get("Rockruff-Dusk");
 		} else if (species.prevo) {
 			// there used to be a check for Hidden Ability here, but apparently it's unnecessary
 			// Shed Skin Pupitar can definitely evolve into Unnerve Tyranitar

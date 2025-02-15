@@ -67,6 +67,26 @@ const TOP_SPEED = 300;
 const levelOverride: {[speciesID: string]: number} = {};
 export let levelUpdateInterval: NodeJS.Timeout | null = null;
 
+// can't import the function cg-teams-leveling.ts uses to this context for some reason
+const useBaseSpecies = [
+	'Pikachu',
+	'Gastrodon',
+	'Magearna',
+	'Dudunsparce',
+	'Maushold',
+	'Keldeo',
+	'Zarude',
+	'Polteageist',
+	'Sinistcha',
+	'Sawsbuck',
+	'Vivillon',
+	'Florges',
+	'Minior',
+	'Toxtricity',
+	'Tatsugiri',
+	'Alcremie',
+];
+
 export default class TeamGenerator {
 	dex: ModdedDex;
 	format: Format;
@@ -80,7 +100,7 @@ export default class TeamGenerator {
 		this.dex = Dex.forFormat(format);
 		this.format = Dex.formats.get(format);
 		this.teamSize = this.format.ruleTable?.maxTeamSize || 6;
-		this.prng = seed instanceof PRNG ? seed : new PRNG(seed);
+		this.prng = PRNG.get(seed);
 		this.itemPool = this.dex.items.all().filter(i => i.exists && i.isNonstandard !== 'Past' && !i.isPokeball);
 		this.specialItems = {};
 		for (const i of this.itemPool) {
@@ -964,9 +984,21 @@ export default class TeamGenerator {
 	 * @returns The level a Pokémon should be.
 	 */
 	protected static getLevel(species: Species): number {
+		if (['Zacian', 'Zamazenta'].includes(species.name)) {
+			species = Dex.species.get(species.otherFormes![0]);
+		} else if (species.baseSpecies === 'Squawkabilly') {
+			if (['Yellow', 'White'].includes(species.forme)) {
+				species = Dex.species.get('Squawkabilly-Yellow');
+			} else {
+				species = Dex.species.get('Squawkabilly');
+			}
+		} else if (useBaseSpecies.includes(species.baseSpecies)) {
+			species = Dex.species.get(species.baseSpecies);
+		}
 		if (levelOverride[species.id]) return levelOverride[species.id];
 
 		switch (species.tier) {
+		case 'AG': return 60;
 		case 'Uber': return 70;
 		case 'OU': case 'Unreleased': return 80;
 		case 'UU': return 90;
@@ -997,7 +1029,7 @@ export default class TeamGenerator {
 
 		const totalWeight = weights.reduce((a, b) => a + b, 0);
 
-		let randomWeight = this.prng.next(0, totalWeight);
+		let randomWeight = this.prng.random(0, totalWeight);
 		for (let i = 0; i < choices.length; i++) {
 			randomWeight -= weights[i];
 			if (randomWeight < 0) {
@@ -1012,6 +1044,6 @@ export default class TeamGenerator {
 	}
 
 	setSeed(seed: PRNGSeed) {
-		this.prng.seed = seed;
+		this.prng.setSeed(seed);
 	}
 }

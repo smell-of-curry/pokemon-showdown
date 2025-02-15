@@ -19,11 +19,11 @@
  * @license MIT
  */
 
-import { Utils } from "../lib";
-import type { RequestState } from "./battle";
-import { Pokemon, EffectState } from "./pokemon";
-import { State } from "./state";
-import { toID } from "./dex";
+import {Utils} from '../lib/utils';
+import type {RequestState} from './battle';
+import {Pokemon, EffectState} from './pokemon';
+import {State} from './state';
+import {toID} from './dex';
 
 /** A single action that can be chosen. */
 export interface ChosenAction {
@@ -121,7 +121,8 @@ export class Side {
 		if (sideScripts) Object.assign(this, sideScripts);
 
 		this.battle = battle;
-		this.id = ["p1", "p2", "p3", "p4"][sideNum] as SideID;
+		if (this.battle.format.side) Object.assign(this, this.battle.format.side);
+		this.id = ['p1', 'p2', 'p3', 'p4'][sideNum] as SideID;
 		this.n = sideNum;
 
 		this.name = name;
@@ -354,13 +355,13 @@ export class Side {
 				sourceEffect
 			);
 		}
-		this.sideConditions[status.id] = {
+		this.sideConditions[status.id] = this.battle.initEffectState({
 			id: status.id,
 			target: this,
 			source,
 			sourceSlot: source.getSlot(),
 			duration: status.duration,
-		};
+		});
 		if (status.durationCallback) {
 			this.sideConditions[status.id].duration = status.durationCallback.call(
 				this.battle,
@@ -434,11 +435,12 @@ export class Side {
 				sourceEffect
 			);
 		}
-		const conditionState = (this.slotConditions[target][status.id] = {
+		const conditionState = this.slotConditions[target][status.id] = this.battle.initEffectState({
 			id: status.id,
 			target: this,
 			source,
 			sourceSlot: source.getSlot(),
+			isSlotCondition: true,
 			duration: status.duration,
 		});
 		if (status.durationCallback) {

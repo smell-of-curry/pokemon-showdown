@@ -1,6 +1,6 @@
-import { Utils } from "../lib";
-import type { ConditionData } from "./dex-conditions";
-import { assignMissingFields, BasicEffect, toID } from "./dex-data";
+import {Utils} from '../lib/utils';
+import type {ConditionData} from './dex-conditions';
+import {assignMissingFields, BasicEffect, toID} from './dex-data';
 
 /**
  * Describes the acceptable target(s) of a move.
