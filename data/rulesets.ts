@@ -181,7 +181,7 @@ export const Rulesets: import("../sim/dex-formats").FormatDataTable = {
             if (this.ruleTable.has(`+move:${move.id}`)) continue;
             const problem = `${set.name}'s move ${move.name} does not exist in the National Dex.`;
             if (this.ruleTable.has("omunobtainablemoves")) {
-              const outOfBattleSpecies = this.getValidationSpecies(set)[0];
+					const {outOfBattleSpecies} = this.getValidationSpecies(set);;
               if (
                 !this.omCheckCanLearn(
                   move,
@@ -6926,7 +6926,7 @@ export const Rulesets: import("../sim/dex-formats").FormatDataTable = {
       }
     },
     onTeamPreview() {
-      this.showOpenTeamSheets(this.rated === true);
+      this.showOpenTeamSheets();
     },
   },
   aaarestrictedabilities: {
