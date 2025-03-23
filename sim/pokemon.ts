@@ -607,7 +607,7 @@ export class Pokemon {
 		let name = this.species.name;
 		if (['Greninja-Bond', 'Rockruff-Dusk'].includes(name)) name = this.species.baseSpecies;
 		if (!level) level = this.level;
-		return name+ ", " + this.pokemonSet.uuid +  + (level === 100 ? '' : ', L' + level) +
+		return name+ ", " + this.pokemonSet.uuid + (level === 100 ? '' : ', L' + level) +
 			(this.gender === '' ? '' : ', ' + this.gender) + (this.pokemonSet.shiny ? ', shiny' : '');
 	}
 

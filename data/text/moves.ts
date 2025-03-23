@@ -1,3 +1,4 @@
+// @ts-nocheck
 export const MovesText: {[id: IDEntry]: MoveText} = {
 	"10000000voltthunderbolt": {
 		name: "10,000,000 Volt Thunderbolt",

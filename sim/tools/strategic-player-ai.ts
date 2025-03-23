@@ -103,10 +103,7 @@ export class StrongHeuristicsAI extends BattlePlayer {
 			myTeam: [],
 			opponentTeam: [],
 		};
-		this.prng =
-			options.seed && !Array.isArray(options.seed)
-				? options.seed
-				: new PRNG(options.seed as PRNGSeed);
+		this.prng = PRNG.get(options.seed);
 		this.difficulty = options.difficulty || 3;
 	}
 
@@ -231,7 +228,7 @@ export class StrongHeuristicsAI extends BattlePlayer {
 			const doSwitch = this.shouldSwitchOut(request, index);
 
 			// Possibly do a random Protect usage
-			if (this.prng.next() < this.protectProbability) {
+			if (this.prng.random() < this.protectProbability) {
 				const protectIndex = moves.findIndex(
 					(m) => Dex.getActiveMove(m.id)?.id === "protect"
 				);
@@ -246,7 +243,7 @@ export class StrongHeuristicsAI extends BattlePlayer {
 					this.difficulty,
 					"switch"
 				);
-				if (this.prng.next() < switchSuccessProb) {
+				if (this.prng.random() < switchSuccessProb) {
 					const bestSlot = this.chooseBestSwitch(canSwitchMons, request);
 					return `switch ${bestSlot}`;
 				}
@@ -802,7 +799,7 @@ export class StrongHeuristicsAI extends BattlePlayer {
 		damage *= hits;
 
 		// We can add a small random factor (0.85..1.0) for realism
-		const rand = 0.85 + 0.15 * this.prng.next();
+		const rand = 0.85 + 0.15 * this.prng.random();
 		damage *= rand;
 
 		// Don’t go negative

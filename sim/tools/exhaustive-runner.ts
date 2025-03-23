@@ -413,7 +413,7 @@ class CoordinatedPlayerAI extends RandomPlayerAI {
 		return `team ${this.choosePokemon(team.map((p, i) => ({slot: i + 1, pokemon: p}))) || 1}`;
 	}
 
-	protected chooseMove(active: AnyObject, moves: {choice: string, move: AnyObject}[]): string {
+	protected chooseMove(moves: {choice: string, move: ICanMoveObject}[], active?: AnyObject): string {
 		this.markUsedIfGmax(active);
 		// Prefer to use a move which hasn't been used yet.
 		for (const {choice, move} of moves) {
@@ -423,12 +423,12 @@ class CoordinatedPlayerAI extends RandomPlayerAI {
 				return choice;
 			}
 		}
-		return super.chooseMove(active, moves);
+		return super.chooseMove(moves);
 	}
 
-	protected chooseSwitch(active: AnyObject | undefined, switches: {slot: number, pokemon: AnyObject}[]): number {
+	protected chooseSwitch(switches: {slot: number, pokemon: ISidePokemonRequest}[], active?: AnyObject): number {
 		this.markUsedIfGmax(active);
-		return this.choosePokemon(switches) || super.chooseSwitch(active, switches);
+		return this.choosePokemon(switches) || super.chooseSwitch(switches);
 	}
 
 	private choosePokemon(choices: {slot: number, pokemon: AnyObject}[]) {

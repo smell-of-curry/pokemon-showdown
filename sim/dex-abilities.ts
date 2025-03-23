@@ -120,7 +120,7 @@ export class DexAbilities {
 
 	all(): readonly Ability[] {
 		if (this.allCache) return this.allCache;
-		const abilities = [];
+		const abilities: Ability[] = [];
 		for (const id in this.dex.data.Abilities) {
 			abilities.push(this.getByID(id as ID));
 		}

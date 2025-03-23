@@ -2031,7 +2031,7 @@ export const Scripts: ModdedBattleScriptsData = {
 
 			const deferPriority = this.battle.gen === 7 && action.mega && action.mega !== 'done';
 			if (action.move) {
-				let target = null;
+				let target: Pokemon | null = null;
 				action.move = this.battle.dex.getActiveMove(action.move);
 
 				if (!action.targetLoc) {

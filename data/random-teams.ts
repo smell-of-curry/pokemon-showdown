@@ -154,7 +154,7 @@ export class RandomTeams {
 
 		this.factoryTier = '';
 		this.format = format;
-		this.prng = prng && !Array.isArray(prng) ? prng : new PRNG(prng as PRNGSeed);
+		this.prng = PRNG.get(prng);
 
 		this.moveEnforcementCheckers = {
 			Bug: (movePool) => movePool.includes('megahorn'),
@@ -200,7 +200,7 @@ export class RandomTeams {
 	}
 
 	setSeed(prng?: PRNG | PRNGSeed) {
-		this.prng = prng && !Array.isArray(prng) ? prng : new PRNG(prng as PRNGSeed);
+		this.prng = PRNG.get(prng);
 	}
 
 	getTeam(options?: PlayerOptions | null): PokemonSet[] {
@@ -227,7 +227,7 @@ export class RandomTeams {
 	}
 
 	random(m?: number, n?: number) {
-		return this.prng.next(m, n);
+		return this.prng.random(m, n);
 	}
 
 	/**
@@ -1460,7 +1460,7 @@ export class RandomTeams {
 	randomTeam() {
 		this.enforceNoDirectCustomBanlistChanges();
 
-		const seed = this.prng.seed;
+		const seed = this.prng.getSeed();
 		const ruleTable = this.dex.formats.getRuleTable(this.format);
 		const pokemon: RandomTeamsTypes.RandomSet[] = [];
 
@@ -1716,11 +1716,11 @@ export class RandomTeams {
 					.map(m => m.id);
 			} else {
 				const formes = ['gastrodoneast', 'pumpkaboosuper', 'zygarde10'];
-				let learnset = this.dex.species.getLearnset(species.id);
+				let learnset = this.dex.species.getFullLearnset(species.id);
 				let learnsetSpecies = species;
 				if (formes.includes(species.id) || !learnset) {
 					learnsetSpecies = this.dex.species.get(species.baseSpecies);
-					learnset = this.dex.species.getLearnset(learnsetSpecies.id);
+					learnset = this.dex.species.getFullLearnset(learnsetSpecies.id);
 				}
 				if (learnset) {
 					pool = Object.keys(learnset).filter(
@@ -1728,7 +1728,7 @@ export class RandomTeams {
 					);
 				}
 				if (learnset && learnsetSpecies === species && species.changesFrom) {
-					learnset = this.dex.species.getLearnset(toID(species.changesFrom));
+					learnset = this.dex.species.getFullLearnset(toID(species.changesFrom));
 					for (const moveid in learnset) {
 						if (!pool.includes(moveid) && learnset[moveid].some(source => source.startsWith(String(this.gen)))) {
 							pool.push(moveid);
@@ -1858,7 +1858,7 @@ export class RandomTeams {
 			for (const species of speciesPool) {
 				if (species.isNonstandard && species.isNonstandard !== 'Unobtainable') continue;
 				if (requireMoves) {
-					const hasMovesInCurrentGen = Object.values(this.dex.species.getLearnset(species.id) || {})
+					const hasMovesInCurrentGen = Object.values(this.dex.species.getFullLearnset(species.id) || {})
 						.some(sources => sources.some(source => source.startsWith('9')));
 					if (!hasMovesInCurrentGen) continue;
 				}

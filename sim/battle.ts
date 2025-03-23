@@ -1354,10 +1354,10 @@ export class Battle {
 				);
 			} else if (["ability", "item"].includes(volatile.id.split(":")[0])) {
 				// Innate abilities/items; see comment below
-				// @ts-ignore - dynamic lookup
 				if (
 					this.gen >= 5 &&
 					callbackName === "onSwitchIn" &&
+					// @ts-ignore - dynamic lookup
 					!volatile.onAnySwitchIn
 				) {
 					callback = volatile.onStart;
@@ -1400,10 +1400,10 @@ export class Battle {
 					callbackName
 				)
 			);
-			// @ts-ignore - dynamic lookup
 		} else if (
 			this.gen >= 5 &&
 			callbackName === "onSwitchIn" &&
+			// @ts-ignore - dynamic lookup
 			!ability.onAnySwitchIn
 		) {
 			// @ts-ignore - dynamic lookup
@@ -1442,10 +1442,11 @@ export class Battle {
 					callbackName
 				)
 			);
-			// @ts-ignore - dynamic lookup
+
 		} else if (
 			this.gen >= 5 &&
 			callbackName === "onSwitchIn" &&
+			// @ts-ignore - dynamic lookup
 			!item.onAnySwitchIn
 		) {
 			// @ts-ignore - dynamic lookup
@@ -3277,6 +3278,8 @@ export class Battle {
 				if (pokemon.side.pokemonLeft) pokemon.side.pokemonLeft--;
 				if (pokemon.side.totalFainted < 100) pokemon.side.totalFainted++;
 				this.runEvent("Faint", pokemon, faintData.source, faintData.effect);
+				// COBBLED -killed POKEMON SOURCE EFFECT
+				this.add("-killed", pokemon, faintData.source, faintData.effect);
 				this.singleEvent(
 					"End",
 					pokemon.getAbility(),

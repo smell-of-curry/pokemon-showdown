@@ -53,6 +53,7 @@ import { Scripts as Gen5Bw1Scripts } from "../data/mods/gen5bw1/scripts";
 import { Scripts as Gen6Scripts } from "../data/mods/gen6/scripts";
 import { Scripts as Gen6XyScripts } from "../data/mods/gen6xy/scripts";
 import { Scripts as Gen7Scripts } from "../data/mods/gen7/scripts";
+import { Scripts as Gen7ApexScripts } from "../data/mods/gen7apex/scripts";
 import { Scripts as Gen7LetsGoScripts } from "../data/mods/gen7letsgo/scripts";
 import { Scripts as Gen7SmScripts } from "../data/mods/gen7sm/scripts";
 import { Scripts as Gen7PokebilitiesScripts } from "../data/mods/gen7pokebilities/scripts";
@@ -189,6 +190,7 @@ const MOD_NAMES = [
 	"gen6",
 	"gen6xy",
 	"gen7",
+	"gen7apex",
 	"gen7letsgo",
 	"gen7sm",
 	"gen7pokebilities",
@@ -232,6 +234,7 @@ const MOD_SCRIPTS: {
 	gen6: Gen6Scripts,
 	gen6xy: Gen6XyScripts,
 	gen7: Gen7Scripts,
+	gen7apex: Gen7ApexScripts,
 	gen7letsgo: Gen7LetsGoScripts,
 	gen7sm: Gen7SmScripts,
 	gen7pokebilities: Gen7PokebilitiesScripts,

@@ -350,8 +350,13 @@ export class Species
 		this.natDexTier = data.natDexTier || "";
 		this.evos = data.evos || [];
 		this.evoType = data.evoType || undefined;
+		this.evoKnownMoveType = data.evoKnownMoveType || "";
+		this.evoMinAffection = data.evoMinAffection || 0;
+		this.evoPartySpecies = data.evoPartySpecies || "";
+		this.evoTradeSpecies = data.evoTradeSpecies || "";
 		this.evoMove = data.evoMove || undefined;
 		this.evoLevel = data.evoLevel || undefined;
+		this.evoPartyType = data.evoPartyType || "";
 		this.nfe = data.nfe || false;
 		this.eggGroups = data.eggGroups || [];
 		this.canHatch = data.canHatch || false;
