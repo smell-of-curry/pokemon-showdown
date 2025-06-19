@@ -5,8 +5,8 @@
  * @license MIT
  */
 
-import { PRNG, PRNGSeed } from "../prng";
-import { Runner, RunnerOptions } from "./runner";
+import { PRNG, PRNGSeed } from '../prng';
+import { Runner, RunnerOptions } from './runner';
 
 // @ts-ignore
 export interface MultiRandomRunnerOptions extends RunnerOptions {
@@ -20,18 +20,18 @@ export interface MultiRandomRunnerOptions extends RunnerOptions {
 
 export class MultiRandomRunner {
   static readonly FORMATS = [
-    "gen8randombattle",
-    "gen8randomdoublesbattle",
-    "gen8battlefactory",
-    "gen7randombattle",
-    "gen7battlefactory",
-    "gen6randombattle",
-    "gen6battlefactory",
-    "gen5randombattle",
-    "gen4randombattle",
-    "gen3randombattle",
-    "gen2randombattle",
-    "gen1randombattle",
+    'gen8randombattle',
+    'gen8randomdoublesbattle',
+    'gen8battlefactory',
+    'gen7randombattle',
+    'gen7battlefactory',
+    'gen6randombattle',
+    'gen6battlefactory',
+    'gen5randombattle',
+    'gen4randombattle',
+    'gen3randombattle',
+    'gen2randombattle',
+    'gen1randombattle',
   ];
 
   private readonly options: Partial<RunnerOptions>;
@@ -50,8 +50,8 @@ export class MultiRandomRunner {
 
     this.totalGames = options.totalGames;
 
-	 this.prng = PRNG.get(options.prng);
-	 this.options.prng = this.prng;
+    this.prng = PRNG.get(options.prng);
+    this.options.prng = this.prng;
 
     this.format = options.format;
     this.cycle = !!options.cycle;
@@ -74,15 +74,15 @@ export class MultiRandomRunner {
         games = [];
       }
 
-		const seed = this.prng.getSeed();
-		const game = new Runner({format, ...this.options}).run().catch(err => {
-			failures++;
-			console.error(
-				`Run \`node tools/simulate multi 1 --format=${format} --seed=${seed}\` ` +
-				`to debug (optionally with \`--output\` and/or \`--input\` for more info):\n`,
-				err
-			);
-		});
+      const seed = this.prng.getSeed();
+      const game = new Runner({ format, ...this.options }).run().catch(err => {
+        failures++;
+        console.error(
+          `Run \`node tools/simulate multi 1 --format=${format} --seed=${seed}\` ` +
+            `to debug (optionally with \`--output\` and/or \`--input\` for more info):\n`,
+          err
+        );
+      });
 
       if (!this.isAsync) await game;
       games.push(game);

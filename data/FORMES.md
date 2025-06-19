@@ -1,5 +1,4 @@
-Pokémon formes
-==============
+# Pokémon formes
 
 Officially, in media from The Pokémon Company, "form" (_sugata_ in Japanese) usually refers to same-species variants of non-legendary Pokémon, and "forme" (_foomu_ in Japanese) usually refers to same-species variants of legendary Pokémon. A number of variations are not called anything at all.
 
@@ -7,9 +6,7 @@ The fandom is inconsistent about what it calls these variations, and because we 
 
 In code, an instance of `Species` refers to a specific forme, which can be accessed with `species.forme`.
 
-
-"Regular" formes
-----------------
+## "Regular" formes
 
 At its most simplest, a forme is like a different species, just with the same species name and dex number. You can't convert between formes, they can have their own learnset, type, Abilities, etc.
 
@@ -32,9 +29,7 @@ Examples include:
 - Wormadam
 - all Galarian and Alolan regional formes
 
-
-Cosmetic formes
----------------
+## Cosmetic formes
 
 Cosmetic formes have no competitive difference from their base forme whatsoever, besides appearance. They are identical in stats, types, learnable moves, ability, and everything else besides appearance.
 
@@ -55,9 +50,7 @@ You will still be able to get a data entry for a cosmetic forme with `Dex.specie
 
 `{name: "Gastrodon-East", forme: "East", baseSpecies: "Gastrodon"}`
 
-
-Visual formes
--------------
+## Visual formes
 
 Some formes are _nearly_ cosmetic formes, but they have differences in what moves they can learn (or whether they can be shiny) due to the existence of events that only distribute one visual forme.
 
@@ -84,9 +77,7 @@ Arceus formes are listed as having the type enforced by Multitype. For instance,
 
 Visual formes in PS are implemented as regular formes.
 
-
-Formes changeable out-of-battle
--------------------------------
+## Formes changeable out-of-battle
 
 Some Pokémon can change forme out-of-battle. These include:
 
@@ -105,9 +96,7 @@ Some changeable formes (like Arceus) are visual formes. See "Visual formes" abov
 
 Changeable formes are otherwise treated identically to regular formes.
 
-
-In-battle formes
-----------------
+## In-battle formes
 
 Some Pokémon change forme in the middle of a battle. These forme changes do reset stats and type.
 
@@ -137,9 +126,7 @@ PS treats these identically to regular formes, but gives them a `battleOnly` pro
 
 These may or may not also have a `requiredItem`, `requiredAbility`, or `requiredMove` property, which notes anything required for the in-battle forme transformation.
 
-
-Visual in-battle formes
------------------------
+## Visual in-battle formes
 
 Some Pokémon change their appearance mid-battle, but not in a way that changes their base stats, Ability, or type. These include:
 
@@ -149,9 +136,7 @@ Some Pokémon change their appearance mid-battle, but not in a way that changes 
 
 PS treats these like regular in-battle formes.
 
-
-"Fake" visual in-battle formes
-------------------------------
+## "Fake" visual in-battle formes
 
 Dynamax/Gigantamax can be thought of as visual in-battle formes, but they're different in one major way: They're not considered "real" forme changes, so the change doesn't reset types and stats changed by Reflect Type, Power Split, Power Trick, etc.
 
@@ -161,9 +146,7 @@ These include:
 
 PS has dex entries for Gigantamax Pokémon (to make their sprites easier to access) but not Dynamax Pokémon.
 
-
-Event-only Ability formes
--------------------------
+## Event-only Ability formes
 
 Some Pokémon have have separate forme in the game code, purely to support having an event-only Ability. These formes look identical to their base forme, and have the same type, stats, and level-up/TM/tutor moves. The only difference is their Ability and which events you can get them from.
 
@@ -180,17 +163,13 @@ Zygarde works the same way, with five formes: regular 50% Zygarde, event-only Po
 
 PS's current implementation of this is weird and will be changed in a few days; do not rely on its current implementation.
 
-
-Not formes
-----------
+## Not formes
 
 Alcremie garnishes and Spinda spot patterns aren't considered formes by the games themselves. PS doesn't support them at all.
 
 Dynamax and Gigantamax are not considered formes by the games themselves. PS implements them correctly in the simulator as volatile statuses, but does have dex entries for Gigantamax Pokémon (treating them as in-battle formes) to make their sprites easier to access, and to make Gigantamax-capable Pokémon easier to select in the teambuilder.
 
-
-`pokedex.js`
-------------
+## `pokedex.js`
 
 All the data shown here is information available from `Dex.species.get`. Data in `pokedex.js` will not necessarily contain the same information.
 

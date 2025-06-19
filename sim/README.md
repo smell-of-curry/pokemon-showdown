@@ -1,5 +1,4 @@
-Node.js package
-===============
+# Node.js package
 
 Pokémon Showdown has a Node.js API. It currently only works in Node, not browsers, although we're working on unifying it to work in browsers.
 
@@ -9,31 +8,23 @@ You can install it with the usual:
 
 And you can use it to do the following things:
 
-
-Simulating battles
-------------------
+## Simulating battles
 
 See: [sim/SIMULATOR.md](./SIMULATOR.md)
 
 Also available as a command-line API!
 
-
-Validating, generating, and converting teams
---------------------------------------------
+## Validating, generating, and converting teams
 
 See: [sim/TEAMS.md](./TEAMS.md)
 
 Also available as a command-line API!
 
-
-Getting Pokédex information
----------------------------
+## Getting Pokédex information
 
 See: [sim/DEX.md](./DEX.md)
 
-
-Undocumented APIs
------------------
+## Undocumented APIs
 
 Pokémon Showdown's Node.js package has TypeScript definitions for everything it exports, including a lot of undocumented APIs.
 

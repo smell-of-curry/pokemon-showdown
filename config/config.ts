@@ -5,4 +5,4 @@
  *
  * @type {ID}
  */
-export const CONFIG_POTD = ""
+export const CONFIG_POTD = '';

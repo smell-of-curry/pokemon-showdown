@@ -1,1049 +1,957 @@
-import { ObjectReadWriteStream } from "../../lib/streams";
-import { BattlePlayer, range } from "../battle-stream";
-import Dex from "../dex";
-import { PRNG, PRNGSeed } from "../prng";
+import { BattlePlayer } from '../battle-stream';
+import { Dex, PRNG, toID } from '../../sim'; // assuming relevant imports for Dex and PRNG utilities
 
-/**
- * Configuration for the AI, including difficulty, random seeds, etc.
- */
+interface IShowdownRequest {
+  // ... define necessary parts of the request object as needed (active, side, etc.)
+  active?: IActivePokemonRequest[];
+  side?: ISideRequest;
+  forceSwitch?: boolean[];
+  teamPreview?: boolean;
+  wait?: boolean;
+}
+
+interface IActivePokemonRequest {
+  moves: { move: string; id: string; pp: number; disabled: boolean }[];
+  // ... other fields like maybe canMega, canTerastal, etc., if any
+}
+
+interface ISidePokemonRequest {
+  // Pokemon info in the side object
+  ident: string; // e.g. "p1: Charizard"
+  details: string; // e.g. "Charizard, L50, F"
+  condition: string; // e.g. "150/150" or "0 fnt"
+  active: boolean;
+  stats: { [stat: string]: number }; // base stats at level (HP, Atk, Def, SpA, SpD, Spe)
+  moves: string[]; // known moves (for our team, full moveset; for foe, revealed moves or empty)
+  baseAbility?: string;
+  ability?: string;
+  item: string;
+  pokeball?: string;
+  // ... other fields can be present (e.g. types, boosts, etc., but we get types and boosts from elsewhere below)
+  types: string[];
+  boosts: { [stat: string]: number };
+  status?: string;
+  // possibly other fields like volatiles, but not needed for our calculations
+}
+
+interface ISideRequest {
+  pokemon: ISidePokemonRequest[];
+  foePokemon: ISidePokemonRequest[];
+  sideConditions?: { [id: string]: any };
+}
+
+// HeuristicsAIOptions for passing optional seed or difficulty
 export interface HeuristicsAIOptions {
-	move?: number;
-	mega?: number;
-	seed?: PRNG | PRNGSeed | null;
-	difficulty?: number; // 1..5
+  seed?: PRNG | PRNGSeed | null;
+  difficulty?: number;
 }
 
-/**
- * Represents an "active" Pokémon and its derived info for decision-making.
- */
-interface IActiveTracker {
-	pokemon: ISidePokemonRequest;
-	currentHp: number;
-	currentHpPercent: number;
-	boosts: BoostsTable;
-	atkBoost: number;
-	defBoost: number;
-	spaBoost: number;
-	spdBoost: number;
-	speBoost: number;
-	currentAbility: string;
-	currentTypes: string[];
-	moves: string[];
-	stats: { [stat: string]: number };
-	sideConditions: { [id: string]: any };
-	firstTurn: number;
-	protectCount: number;
-}
-
-/**
- * Our main AI class that inherits from BattlePlayer.
- * It merges some logic from your Kotlin "StrongBattleAI" with standard Showdown heuristics.
- */
 export class StrongHeuristicsAI extends BattlePlayer {
-	protected activeTracker: {
-		myActive?: IActiveTracker;
-		opponentActive?: IActiveTracker;
-		myTeam: ISidePokemonRequest[];
-		opponentTeam: ISidePokemonRequest[];
-	};
-
-	protected readonly prng: PRNG;
-	protected readonly difficulty: number;
-
-	/** Various numeric parameters controlling AI behavior. */
-	private speedTierCoefficient = 4.0;
-	private trickRoomCoefficient = 1.0;
-	private typeMatchupWeight = 2.5;
-	private moveDamageWeight = 0.8;
-	private antiBoostWeight = 25;
-	private hpWeight = 0.25;
-	private hpFractionCoefficient = 0.4;
-	private boostWeightCoefficient = 1;
-	private switchOutMatchupThreshold = -3;
-
-	// Keep track of how often we’ve switched to avoid repeated bounce:
-	private lastSwitchTurn: number | null = null;
-	private switchLockTurns = 2; // number of turns we disallow immediate switching back
-
-	/**
-	 * If below this HP% and foe is faster, we might do an “emergency” switch.
-	 */
-	private faintThresholdPercent = 0.1;
-
-	/**
-	 * Probability of using Protect if available (random check).
-	 */
-	private protectProbability = 0.15;
-
-	/**
-	 * If below 50% HP, we might use recovery moves (if we have them).
-	 */
-	private recoveryMoveThreshold = 0.5;
-
-	/**
-	 * If accuracy is reduced below -3, consider switching out.
-	 */
-	private accuracySwitchThreshold = -3;
-
-	/**
-	 * If below 30% HP (and not trapped), consider switching.
-	 */
-	private hpSwitchOutThreshold = 0.3;
-
-	/** We track weather to apply advanced weather-based multipliers. */
-	private currentWeather: string | null = null;
-
-	constructor(
-		playerStream: ObjectReadWriteStream<string>,
-		options: HeuristicsAIOptions = {},
-		debug = false
-	) {
-		super(playerStream, debug);
-		this.activeTracker = {
-			myTeam: [],
-			opponentTeam: [],
-		};
-		this.prng = PRNG.get(options.seed);
-		this.difficulty = options.difficulty || 3;
-	}
-
-	/**
-	 * Called if our chosen action is invalid. We can try again next time.
-	 * @param error - The error thrown, probably to do with move selection.
-	 */
-	public receiveError(error: string): void {
-		console.warn(`Trainer Error Message: "${error}"`);
-
-		// [Invalid choice] Can't move: Bunnelby's Agility is disabled
-		// type == Invalid choice
-		// suffix == Can't move
-		// message == Bunnelby's Agility is disabled
-		const [type, suffix, message] =
-			error.match(/^\[(.*?)\] (.*?): (.*)$/) || [];
-
-		switch (type) {
-			case "Invalid choice":
-				// This will tell you to send a different decision. If your previous choice
-				// revealed additional information (For example: a move disabled by Imprison
-				// or a trapping effect), the error will be followed with a `|request|` command
-				// to base your decision off of:
-
-				if (suffix === "Can't move") {
-					// The trainer just choose a move that is probably disabled.
-					// We need to block that move from being chosen again, and re-receiveRequest.
-				}
-				break;
-			case "Unavailable choice":
-				break;
-			default:
-				break;
-		}
-	}
-
-	/**
-	 * Called whenever Showdown sends a request: choose a move, force switch, team preview, etc.
-	 */
-	public receiveRequest(request: IShowdownRequest): string {
-		if (request.wait) {
-			return ``;
-		}
-
-		// If there's a weather field in the request (uncommon), record it.
-		if ((request as any).weather) {
-			this.currentWeather = (request as any).weather || null;
-		}
-
-		// Force switch scenario
-		if (request.forceSwitch) {
-			return this.handleForceSwitch(request);
-		}
-		// Standard move selection
-		else if (request.active) {
-			return this.chooseMove(request);
-		}
-		// Possibly team preview
-		else {
-			return this.chooseTeamPreview(request);
-		}
-	}
-
-	/**
-	 * For forced switching, e.g. after a KO or a pivot move.
-	 */
-	private handleForceSwitch(request: IShowdownRequest): string {
-		const side = request.side;
-		const forceSwitchFlags = request.forceSwitch || [];
-		if (!side?.pokemon) return `pass`;
-
-		const chosen: number[] = [];
-		const decisions = forceSwitchFlags.map((mustSwitch, i) => {
-			if (!mustSwitch) return `pass`;
-
-			// Identify possible switch-ins
-			const validSlots = range(1, side.pokemon.length).filter((j) => {
-				const benchPoke = side.pokemon[j - 1];
-				if (!benchPoke) return false;
-				if (benchPoke.condition.endsWith(" fnt") && !benchPoke.reviving)
-					return false;
-				if (j <= forceSwitchFlags.length) return false; // active slot
-				if (chosen.includes(j)) return false;
-				return true;
-			});
-
-			if (!validSlots.length) return `pass`;
-
-			// Among all valid bench, pick the best
-			const bestBenchSlot = this.chooseBestSwitch(
-				validSlots.map((x) => side.pokemon[x - 1]),
-				request
-			);
-			chosen.push(bestBenchSlot);
-			return `switch ${bestBenchSlot}`;
-		});
-
-		return decisions.join(", ");
-	}
-
-	/**
-	 * Main logic for picking moves each turn.
-	 */
-	private chooseMove(request: IShowdownRequest): string {
-		this.updateActiveTracker(request);
-
-		const side = request.side;
-		const actives = request.active;
-		if (!side || !actives) return `pass`;
-
-		const decisions = actives.map((slot, index) => {
-			const sidePoke = side.pokemon[index];
-			if (!sidePoke || sidePoke.condition.endsWith(" fnt")) {
-				return `pass`;
-			}
-
-			const moves = this.getAvailableMoves(slot);
-			if (!moves.length) return `pass`;
-
-			// Possibly check if we do a “correct” switch or move:
-			const canSwitchMons = this.canSwitch(request);
-			const doSwitch = this.shouldSwitchOut(request, index);
-
-			// Possibly do a random Protect usage
-			if (this.prng.random() < this.protectProbability) {
-				const protectIndex = moves.findIndex(
-					(m) => Dex.getActiveMove(m.id)?.id === "protect"
-				);
-				if (protectIndex >= 0) {
-					return `move ${protectIndex + 1}`;
-				}
-			}
-
-			if (doSwitch && canSwitchMons.length > 0) {
-				// skill-based check for switch
-				const switchSuccessProb = this.skillToSuccessProbability(
-					this.difficulty,
-					"switch"
-				);
-				if (this.prng.random() < switchSuccessProb) {
-					const bestSlot = this.chooseBestSwitch(canSwitchMons, request);
-					return `switch ${bestSlot}`;
-				}
-			}
-
-			// Otherwise choose best move
-			return this.chooseBestMove(moves, request, index);
-		});
-
-		return decisions.join(", ");
-	}
-
-	/**
-	 * For team preview: pick an initial lead. We do a simple approach:
-	 * evaluate each of ours vs. foe's rosters, pick the best sum.
-	 */
-	private chooseTeamPreview(request: IShowdownRequest): string {
-		const side = request.side;
-		if (!side?.pokemon?.length || !side.foePokemon.length) {
-			return `default`;
-		}
-
-		let bestScore = -Infinity;
-		let bestIndex = 0;
-
-		for (let i = 0; i < side.pokemon.length; i++) {
-			const candidate = side.pokemon[i];
-			if (!candidate || candidate.condition.endsWith(" fnt")) continue;
-			let sum = 0;
-			for (const foeMon of side.foePokemon) {
-				sum += this.evaluateMatchup(candidate, foeMon);
-			}
-			if (sum > bestScore) {
-				bestScore = sum;
-				bestIndex = i;
-			}
-		}
-
-		const order = [
-			bestIndex,
-			...range(0, side.pokemon.length - 1).filter((x) => x !== bestIndex),
-		];
-		return `team ${order.map((x) => x + 1).join(",")}`;
-	}
-
-	/**
-	 * Update our internal tracking of the active Pokémon on each side.
-	 */
-	private updateActiveTracker(request: IShowdownRequest): void {
-		const side = request.side;
-		if (!side) return;
-		const foe = side.foePokemon;
-		const myActive = side.pokemon.find((p) => p.active);
-		const oppActive = foe?.find((p) => p.active);
-
-		if (!myActive || !oppActive) {
-			this.activeTracker.myActive = undefined;
-			this.activeTracker.opponentActive = undefined;
-			this.activeTracker.myTeam = side.pokemon;
-			this.activeTracker.opponentTeam = foe || [];
-			return;
-		}
-
-		this.activeTracker.myActive = {
-			pokemon: myActive,
-			currentHp: this.getCurrentHP(myActive.condition),
-			currentHpPercent: this.getHPFraction(myActive.condition),
-			boosts: myActive.boosts,
-			atkBoost: myActive.boosts.atk || 0,
-			defBoost: myActive.boosts.def || 0,
-			spaBoost: myActive.boosts.spa || 0,
-			spdBoost: myActive.boosts.spd || 0,
-			speBoost: myActive.boosts.spe || 0,
-			currentAbility: myActive.ability || myActive.baseAbility,
-			currentTypes: myActive.types,
-			moves: myActive.moves,
-			stats: myActive.stats,
-			sideConditions: side.sideConditions,
-			firstTurn: 1,
-			protectCount: 0,
-		};
-
-		this.activeTracker.opponentActive = {
-			pokemon: oppActive,
-			currentHp: this.getCurrentHP(oppActive.condition),
-			currentHpPercent: this.getHPFraction(oppActive.condition),
-			boosts: oppActive.boosts,
-			atkBoost: oppActive.boosts.atk || 0,
-			defBoost: oppActive.boosts.def || 0,
-			spaBoost: oppActive.boosts.spa || 0,
-			spdBoost: oppActive.boosts.spd || 0,
-			speBoost: oppActive.boosts.spe || 0,
-			currentAbility: oppActive.ability || oppActive.baseAbility,
-			currentTypes: oppActive.types,
-			moves: oppActive.moves,
-			stats: oppActive.stats,
-			sideConditions: {}, // not in request
-			firstTurn: 1,
-			protectCount: 0,
-		};
-
-		this.activeTracker.myTeam = side.pokemon;
-		this.activeTracker.opponentTeam = foe || [];
-	}
-
-	/**
-	 * Returns numeric HP from "145/300" or "0 fnt" etc.
-	 * @param condition The condition string from the Pokémon.
-	 */
-	private getCurrentHP(condition: string): number {
-		if (condition.includes(" fnt")) return 0;
-		const [hpPart] = condition.split(" ");
-		if (hpPart.includes("/")) {
-			const [curr] = hpPart.split("/").map(Number);
-			return curr;
-		} else if (hpPart.endsWith("%")) {
-			return parseInt(hpPart, 10);
-		}
-		return 100;
-	}
-
-	/**
-	 * Returns fraction 0..1 from "145/300" or "50%".
-	 * @param condition The condition string from the Pokémon.
-	 */
-	private getHPFraction(condition: string): number {
-		const [hpPart] = condition.split(" ");
-		if (hpPart.includes("/")) {
-			const [num, den] = hpPart.split("/").map(Number);
-			if (den) return num / den;
-			return 1.0;
-		} else if (hpPart.endsWith("%")) {
-			return parseInt(hpPart, 10) / 100;
-		}
-		return 1.0;
-	}
-
-	/**
-	 * Whether we want to switch out the current active Pokémon.
-	 * We consider HP, matchup, stat drops, etc.
-	 *
-	 * @param request The current request.
-	 * @param slotIndex The index of the active slot.
-	 */
-	private shouldSwitchOut(
-		request: IShowdownRequest,
-		slotIndex: number
-	): boolean {
-		this.updateActiveTracker(request);
-		const me = this.activeTracker.myActive;
-		const foe = this.activeTracker.opponentActive;
-		if (!me || !foe) return false;
-
-		// If we just switched recently, skip switching again to avoid ping-pong
-		if (this.lastSwitchTurn != null) {
-			// e.g., get the current turn from request if possible (somewhere in the data)
-			const currentTurn = (request as any).turn || 0;
-			if (currentTurn - this.lastSwitchTurn < this.switchLockTurns) {
-				return false;
-			}
-		}
-
-		if (me.pokemon.trapped) return false;
-
-		// If extremely low HP and foe is faster
-		if (
-			me.currentHpPercent < this.faintThresholdPercent &&
-			me.stats.spe < foe.stats.spe &&
-			this.canSwitch(request).length > 0
-		) {
-			this.lastSwitchTurn = (request as any).turn || 0;
-			return true;
-		}
-
-		// Evaluate matchup
-		const matchScore = this.evaluateMatchup(me.pokemon, foe.pokemon);
-		// Only switch if significantly negative
-		if (
-			matchScore < this.switchOutMatchupThreshold &&
-			this.canSwitch(request).length > 0
-		) {
-			this.lastSwitchTurn = (request as any).turn || 0;
-			return true;
-		}
-
-		// Large negative stat drops
-		if ((me.boosts.atk || 0) <= -3 && me.stats.atk >= me.stats.spa) {
-			this.lastSwitchTurn = (request as any).turn || 0;
-			return true;
-		}
-		if ((me.boosts.spa || 0) <= -3 && me.stats.spa >= me.stats.atk) {
-			this.lastSwitchTurn = (request as any).turn || 0;
-			return true;
-		}
-
-		// If below hpSwitchOutThreshold
-		if (
-			me.currentHpPercent < this.hpSwitchOutThreshold &&
-			this.canSwitch(request).length > 0
-		) {
-			this.lastSwitchTurn = (request as any).turn || 0;
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
-	 * We adapt the Kotlin logic to evaluate a matchup.
-	 * The higher the returned score, the better it is for "myPoke".
-	 *
-	 * @param myPoke The Pokémon we are evaluating.
-	 * @param foePoke The opponent's Pokémon.
-	 */
-	private evaluateMatchup(
-		myPoke: ISidePokemonRequest,
-		foePoke: ISidePokemonRequest
-	): number {
-		let score = 0;
-
-		// Type advantage
-		const typeMult = this.calculateTypeEffectiveness(
-			myPoke.types,
-			foePoke.types
-		);
-		score += typeMult * this.typeMatchupWeight;
-
-		// Speed advantage
-		if (myPoke.stats.spe > foePoke.stats.spe) {
-			score += this.speedTierCoefficient * this.trickRoomCoefficient;
-		} else if (myPoke.stats.spe < foePoke.stats.spe) {
-			score -= this.speedTierCoefficient * this.trickRoomCoefficient;
-		}
-
-		// HP fraction difference
-		const myHPFrac = this.getHPFraction(myPoke.condition);
-		const foeHPFrac = this.getHPFraction(foePoke.condition);
-		score +=
-			(myHPFrac - foeHPFrac) * this.hpFractionCoefficient * this.hpWeight;
-
-		// Sum boosts
-		const mySum = this.sumBoosts(myPoke.boosts);
-		const theirSum = this.sumBoosts(foePoke.boosts);
-		score += mySum - theirSum;
-
-		// If the foe is boosted but we have anti-boost moves
-		if (this.isBoosted(foePoke) && this.hasAntiBoostMoves(myPoke)) {
-			score += this.antiBoostWeight;
-		}
-
-		return score;
-	}
-
-	/**
-	 * Sum the numeric values in a BoostsTable.
-	 * @param boosts The BoostsTable to sum.
-	 */
-	private sumBoosts(boosts: BoostsTable): number {
-		let s = 0;
-		for (const statID in boosts) {
-			const st = statID as BoostID;
-			s += boosts[st] || 0;
-		}
-		return s;
-	}
-
-	/**
-	 * If any relevant stat is above our threshold, we consider the Pokémon "boosted."
-	 * @param poke The Pokémon to check.
-	 */
-	private isBoosted(poke: ISidePokemonRequest): boolean {
-		return (
-			(poke.boosts.atk || 0) > this.boostWeightCoefficient ||
-			(poke.boosts.def || 0) > this.boostWeightCoefficient ||
-			(poke.boosts.spa || 0) > this.boostWeightCoefficient ||
-			(poke.boosts.spd || 0) > this.boostWeightCoefficient ||
-			(poke.boosts.spe || 0) > this.boostWeightCoefficient
-		);
-	}
-
-	/**
-	 * If we have moves like "haze", "clearsmog", or "spectralthief".
-	 * @param poke The Pokémon to check.
-	 */
-	private hasAntiBoostMoves(poke: ISidePokemonRequest): boolean {
-		const anti = ["haze", "clearsmog", "spectralthief", "clearSmog"];
-		return poke.moves.some((m) => anti.includes(m));
-	}
-
-	/**
-	 * Multiply together the type effectiveness of each attacker type on each defender type.
-	 * Showdown’s Dex.getEffectiveness is simpler than your Kotlin typed map.
-	 *
-	 * @param attackerTypes The types of the attacking Pokémon.
-	 * @param defenderTypes The types of the defending Pokémon.
-	 */
-	private calculateTypeEffectiveness(
-		attackerTypes: string[],
-		defenderTypes: string[]
-	): number {
-		let mult = 1.0;
-		for (const atk of attackerTypes) {
-			for (const def of defenderTypes) {
-				mult *= Dex.getEffectiveness(atk, def);
-			}
-		}
-		return mult;
-	}
-
-	/**
-	 * Choose the best move from the given move list.
-	 * We incorporate a more advanced damage formula that references
-	 * some of the Kotlin logic (multi-hit, burn, weather, Adaptability, random factor, etc.).
-	 *
-	 * @param moves The list of selectable moves.
-	 * @param request The current request.
-	 * @param slotIndex The index of the active slot.
-	 */
-	private chooseBestMove(
-		moves: MoveOption[],
-		request: IShowdownRequest,
-		slotIndex: number
-	): string {
-		const me = this.activeTracker.myActive;
-		const foe = this.activeTracker.opponentActive;
-		if (!me || !foe) return `move 1`;
-
-		let bestMove = moves[0];
-		let bestValue = -Infinity;
-
-		for (const opt of moves) {
-			const moveData = Dex.getActiveMove(opt.id);
-			if (!moveData) continue;
-
-			let value = 0;
-
-			if (moveData.category === "Status") {
-				// Use your custom logic for status/boost/hazard moves
-				value = this.evaluateStatusMove(opt, me.pokemon, foe.pokemon);
-			} else {
-				// Offensive move: estimate partial damage
-				const foeHP = this.getCurrentHP(foe.pokemon.condition);
-				const predictedDmg = this.estimateDamage(
-					opt,
-					me.pokemon,
-					foe.pokemon
-				);
-
-				// Add some base "damage weight" so big hits are appealing
-				value = predictedDmg * this.moveDamageWeight;
-
-				// If the move is a guaranteed KO, add a large bonus
-				if (predictedDmg >= foeHP) {
-					value += 40;
-				}
-			}
-
-			if (value > bestValue) {
-				bestValue = value;
-				bestMove = opt;
-			}
-		}
-
-		// If doubles/triples, pick which target to attack
-		const targetIndex = this.chooseMoveTarget(bestMove, request, slotIndex);
-
-		// Get Real IDX of the move
-		const moveIdx =
-			(request.active as IActivePokemonRequest[])[slotIndex].moves.indexOf(
-				bestMove
-			) + 1;
-
-		if (request.active && request.active.length > 1) {
-			return `move ${moveIdx} ${targetIndex}`;
-		} else {
-			return `move ${moveIdx}`;
-		}
-	}
-
-	/**
-	 * Evaluate a status move.
-	 * E.g., Will-o-Wisp vs physically inclined foes, TWave vs faster foes, etc.
-	 *
-	 * @param opt The move option to evaluate.
-	 * @param myPoke Our active Pokémon.
-	 * @param foePoke The opponent's active Pokémon.
-	 */
-	private evaluateStatusMove(
-		opt: MoveOption,
-		myPoke: ISidePokemonRequest,
-		foePoke: ISidePokemonRequest
-	): number {
-		const m = Dex.getActiveMove(opt.id);
-		if (!m) return 0;
-
-		// If foe is already statused, no point in using a status-inflicting move again
-		const foeAlreadyStatused = !!foePoke.status && foePoke.status !== "none";
-
-		let val = 0;
-		switch (m.id) {
-			case "willowisp":
-				// If foe is physically oriented and not already burned, not Fire-type
-				if (
-					!foeAlreadyStatused &&
-					foePoke.stats.atk > foePoke.stats.spa &&
-					!foePoke.types.includes("Fire")
-				) {
-					val = 35; // lowered from 50
-				}
-				break;
-
-			case "thunderwave":
-				// If foe is faster, not already statused, not Ground/Electric immune
-				if (!foeAlreadyStatused && foePoke.stats.spe > myPoke.stats.spe) {
-					val = 30; // lowered from 40
-				}
-				break;
-
-			case "swordsdance":
-			case "nastyplot":
-				// Only valuable if we haven't boosted too much already
-				// e.g., if we're < +2 in the relevant offensive stat, or if it actually fits our stats
-				const isPhysical = m.id === "swordsdance";
-				const currentBoost = isPhysical
-					? myPoke.boosts.atk || 0
-					: myPoke.boosts.spa || 0;
-				if (currentBoost < 2) {
-					// also check if we’re actually that kind of attacker
-					const betterAtk = isPhysical
-						? myPoke.stats.atk >= myPoke.stats.spa
-						: myPoke.stats.spa >= myPoke.stats.atk;
-					if (betterAtk) val = 20; // lowered from 30
-				}
-				break;
-
-			case "stealthrock":
-			case "spikes":
-				// Example: only if hazards are not already set
-				// (In a real AI, you'd check side conditions properly)
-				val = 15; // lowered from 25
-				break;
-
-			default:
-				// Possibly more checks for other utility/status moves
-				break;
-		}
-
-		return val;
-	}
-
-	/**
-	 * A more advanced damage formula that mimics your Kotlin logic from the `StrongBattleAI`.
-	 * Includes multi-hit moves, burn penalty, weather, and so on.
-	 *
-	 * @param opt The move option to evaluate.
-	 * @param atkSide Our active Pokémon.
-	 * @param defSide The opponent's active Pokémon.
-	 */
-	private estimateDamage(
-		opt: MoveOption,
-		atkSide: ISidePokemonRequest,
-		defSide: ISidePokemonRequest
-	): number {
-		const m = Dex.getActiveMove(opt.id);
-		if (!m || !m.basePower) return 0;
-
-		// Determine if multi-hit
-		const multiHitInfo = this.getMultiHitInfo(m.id);
-		// The average # hits if multi-hit
-		const hits = multiHitInfo.avgHits || 1;
-
-		// Physical or special
-		const isPhysical = m.category === "Physical";
-		const atkStat = isPhysical ? "atk" : "spa";
-		const defStat = isPhysical ? "def" : "spd";
-
-		let atkVal = atkSide.stats[atkStat];
-		let defVal = defSide.stats[defStat];
-
-		// Apply boosts
-		atkVal *= this.getBoostMultiplier(atkSide.boosts[atkStat] || 0);
-		defVal *= this.getBoostMultiplier(defSide.boosts[defStat] || 0);
-
-		// Abilities: e.g., Huge/Pure Power => double Attack
-		const ability = (
-			atkSide.ability ||
-			atkSide.baseAbility ||
-			""
-		).toLowerCase();
-		if ((ability === "hugepower" || ability === "purepower") && isPhysical) {
-			atkVal *= 2;
-		}
-
-		// Check for items: choice band/specs
-		const item = atkSide.item.toLowerCase();
-		if (
-			(item.includes("choice band") || item.includes("choiceband")) &&
-			isPhysical
-		) {
-			atkVal *= 1.5;
-		}
-		if (
-			(item.includes("choice specs") || item.includes("choicespecs")) &&
-			!isPhysical
-		) {
-			atkVal *= 1.5;
-		}
-
-		// Base formula
-		let damage =
-			(((2 * (atkSide.level || 100)) / 5 + 2) * m.basePower * atkVal) /
-				defVal /
-				50 +
-			2;
-
-		// STAB
-		if (atkSide.types.includes(m.type)) {
-			// If ability is "adaptability," STAB is 2.0 instead of 1.5
-			if (ability === "adaptability") {
-				damage *= 2.0;
-			} else {
-				damage *= 1.5;
-			}
-		}
-
-		// Type effectiveness
-		for (const defType of defSide.types) {
-			const eff = Dex.getEffectiveness(m.type, defType);
-			damage *= eff;
-		}
-
-		// Weather
-		if (this.currentWeather === "raindance") {
-			if (m.type === "Water") damage *= 1.5;
-			if (m.type === "Fire") damage *= 0.5;
-		} else if (this.currentWeather === "sunnyday") {
-			if (m.type === "Fire") damage *= 1.5;
-			if (m.type === "Water") damage *= 0.5;
-		}
-
-		// If user is burned and using a physical move, cut damage in half
-		// (unless Guts, etc. but we skip that detail for brevity).
-		if (
-			atkSide.status === "brn" &&
-			isPhysical &&
-			ability !== "guts" &&
-			ability !== "flareboost"
-		) {
-			damage *= 0.5;
-		}
-
-		// Multiply by hits
-		damage *= hits;
-
-		// We can add a small random factor (0.85..1.0) for realism
-		const rand = 0.85 + 0.15 * this.prng.random();
-		damage *= rand;
-
-		// Don’t go negative
-		if (damage < 0) damage = 0;
-
-		return damage;
-	}
-
-	/**
-	 * Returns [minHits, maxHits, avgHits] for a multi-hit move ID, if relevant.
-	 *
-	 * @param moveId The ID of the move to check.
-	 * @returns The min, max, and average number of hits.
-	 * @example getMultiHitInfo("rockblast") => { minHits: 2, maxHits: 5, avgHits: 3.5 }
-	 */
-	private getMultiHitInfo(moveId: string): {
-		minHits: number;
-		maxHits: number;
-		avgHits: number;
-	} {
-		// Example: in your Kotlin code, you have an entire map of multi-hit moves.
-		// We'll just handle a few or do a simple fallback.
-		const multiHitMap: { [id: string]: [number, number] } = {
-			// 2 - 5 hit moves
-			armthrust: [2, 5],
-			barrage: [2, 5],
-			bonerush: [2, 5],
-			bulletseed: [2, 5],
-			cometpunch: [2, 5],
-			doubleslap: [2, 5],
-			furyattack: [2, 5],
-			furyswipes: [2, 5],
-			iciclespear: [2, 5],
-			pinmissile: [2, 5],
-			rockblast: [2, 5],
-			scaleshot: [2, 5],
-			spikecannon: [2, 5],
-			tailslap: [2, 5],
-
-			// fixed hit count
-			bonemerang: [2, 2],
-			doublehit: [2, 2],
-			doubleironbash: [2, 2],
-			doublekick: [2, 2],
-			dragondarts: [2, 2],
-			dualchop: [2, 2],
-			dualwingbeat: [2, 2],
-			geargrind: [2, 2],
-			twinbeam: [2, 2],
-			twineedle: [2, 2],
-			suringstrikes: [3, 3],
-			tripledive: [3, 3],
-			watershuriken: [3, 3],
-
-			// accuracy based multi-hit moves
-			tripleaxel: [1, 3],
-			triplekick: [1, 3],
-			populationbomb: [1, 10],
-		};
-		const match = multiHitMap[moveId];
-		if (!match) {
-			return { minHits: 1, maxHits: 1, avgHits: 1 };
-		}
-
-		const [min, max] = match;
-		if (min === max) {
-			return { minHits: min, maxHits: max, avgHits: min };
-		} else {
-			// e.g. 2..5 => average is (3.0) or something approximate
-			const avg = (min + max) / 2;
-			return { minHits: min, maxHits: max, avgHits: avg };
-		}
-	}
-
-	/**
-	 * Returns a multiplier for a given integer boost.
-	 * @param boost The boost value (-6..+6).
-	 */
-	private getBoostMultiplier(boost: number): number {
-		if (boost >= 0) {
-			return (2 + boost) / 2;
-		} else {
-			return 2 / (2 - boost);
-		}
-	}
-
-	/**
-	 * Return the list of bench Pokémon we can switch to.
-	 * @param request The current request.
-	 */
-	private canSwitch(request: IShowdownRequest): ISidePokemonRequest[] {
-		const side = request.side;
-		if (!side?.pokemon) return [];
-		return side.pokemon.filter(
-			(p) => !p.active && !p.condition.endsWith(" fnt")
-		);
-	}
-
-	/**
-	 * Among some candidate bench Pokémon, pick the best to switch into.
-	 * We evaluate by comparing each candidate's matchup vs. the foe’s active.
-	 *
-	 * @param candidates The list of candidate Pokémon to switch to.
-	 * @param request The current request.
-	 */
-	private chooseBestSwitch(
-		candidates: ISidePokemonRequest[],
-		request: IShowdownRequest
-	): number {
-		const foe = this.activeTracker.opponentActive?.pokemon;
-		if (!foe) {
-			// fallback
-			return request.side?.pokemon.indexOf(candidates[0]) + 1 || 1;
-		}
-
-		let bestScore = -Infinity;
-		let bestMon = candidates[0];
-		for (const c of candidates) {
-			const sc = this.evaluateMatchup(c, foe);
-			if (sc > bestScore) {
-				bestScore = sc;
-				bestMon = c;
-			}
-		}
-
-		const idx = request.side?.pokemon.indexOf(bestMon);
-		if (idx === undefined || idx < 0) return 1;
-		return idx + 1;
-	}
-
-	/**
-	 * Choose move target in multi-target formats (doubles, triples).
-	 * We can do something more advanced: e.g., if we can KO an enemy, prefer that.
-	 *
-	 * @param move The move option we are considering.
-	 * @param request The current request.
-	 * @param slotIndex The index of the active slot.
-	 */
-	private chooseMoveTarget(
-		move: MoveOption,
-		request: IShowdownRequest,
-		slotIndex: number
-	): number {
-		if (!request.active || request.active.length <= 1) {
-			return 1; // single battles => always target 1
-		}
-		// In doubles/triples, let's pick the foe that yields the highest “damage” estimate
-		// or that is within KO range.
-
-		const me = this.activeTracker.myActive;
-		const foes: Array<{ slot: number; foePoke: ISidePokemonRequest }> = [];
-		const foeSide = request.side.foePokemon;
-
-		// Let’s guess how many foes are on the field for multi battles:
-		// We'll assume up to foeSide.length is possible.
-		// This is simplistic, but a real doubles/triples AI would check request.active on the foe’s side.
-
-		foeSide.forEach((f, i) => {
-			if (f.active && !f.condition.endsWith(" fnt")) {
-				foes.push({ slot: i + 1, foePoke: f });
-			}
-		});
-
-		if (!foes.length || !me) return 1;
-
-		let bestSlot = foes[0].slot;
-		let bestValue = -Infinity;
-
-		for (const foeObj of foes) {
-			const hypotheticalDamage = this.estimateDamage(
-				move,
-				me.pokemon,
-				foeObj.foePoke
-			);
-			// If we can KO them => huge value
-			const foeHP = this.getCurrentHP(foeObj.foePoke.condition);
-			if (hypotheticalDamage >= foeHP) {
-				// immediate KO => pick this
-				return foeObj.slot;
-			}
-			if (hypotheticalDamage > bestValue) {
-				bestValue = hypotheticalDamage;
-				bestSlot = foeObj.slot;
-			}
-		}
-
-		return bestSlot;
-	}
-
-	/**
-	 * We incorporate a skill check for picking "good" vs "random" actions (move/switch/item).
-	 * This is a simple heuristic that can be adjusted.
-	 *
-	 * @param difficulty The difficulty level (1..5).
-	 * @param actionType The type of action we are considering.
-	 */
-	private skillToSuccessProbability(
-		difficulty: number,
-		actionType: "move" | "switch" | "item"
-	): number {
-		// Some arbitrary mappings. Tweak to your preference.
-		if (actionType === "move") {
-			// difficulty=5 => 100% always pick the best
-			// difficulty=1 => 20%
-			return difficulty * 0.2;
-		} else if (actionType === "switch") {
-			// For switching logic
-			switch (difficulty) {
-				case 5:
-					return 1.0;
-				case 4:
-					return 0.8;
-				case 3:
-					return 0.4;
-				case 2:
-					return 0.2;
-				default:
-					return 0.0;
-			}
-		} else if (actionType === "item") {
-			// If we had item usage
-			switch (difficulty) {
-				case 5:
-					return 1.0;
-				case 4:
-					return 0.75;
-				case 3:
-					return 0.5;
-				case 2:
-					return 0.25;
-				default:
-					return 0.0;
-			}
-		}
-		return 0;
-	}
-
-	/**
-	 * Return all non-disabled moves from the active slot.
-	 *
-	 * @param active The active slot to check.
-	 */
-	protected getAvailableMoves(active: IActivePokemonRequest): MoveOption[] {
-		if (!active?.moves) return [];
-		return active.moves.filter((m) => !m.disabled);
-	}
+  protected activeTracker: {
+    myActive?: {
+      pokemon: ISidePokemonRequest;
+      currentHp: number;
+      currentHpPercent: number;
+      boosts: { [s: string]: number };
+      stats: { [s: string]: number };
+      currentAbility: string;
+      currentTypes: string[];
+    };
+    opponentActive?: {
+      pokemon: ISidePokemonRequest;
+      currentHp: number;
+      currentHpPercent: number;
+      boosts: { [s: string]: number };
+      stats: { [s: string]: number };
+      currentAbility: string;
+      currentTypes: string[];
+    };
+    myTeam: ISidePokemonRequest[];
+    opponentTeam: ISidePokemonRequest[];
+  };
+  protected readonly prng: PRNG;
+  protected readonly difficulty: number;
+
+  // Behavioral parameters (can be tuned for difficulty)
+  private speedTierCoefficient = 4.0;
+  private trickRoomCoefficient = 1.0;
+  private typeMatchupWeight = 2.5;
+  private moveDamageWeight = 0.8;
+  private antiBoostWeight = 25;
+  private hpWeight = 0.25;
+  private hpFractionCoefficient = 0.4;
+  private boostWeightCoefficient = 1;
+  private switchOutMatchupThreshold = -3;
+  private lastSwitchTurn: number | null = null;
+  private switchLockTurns = 2;
+  private faintThresholdPercent = 0.1;
+  private protectProbability = 0.15;
+  private hpSwitchOutThreshold = 0.3;
+  private currentWeather: string | null = null;
+
+  // New tracking state for improved logic
+  private lastMove: { [activeSlot: number]: string } = {}; // track last move used (by move ID) for each active slot
+  private disabledMoves: Set<string> = new Set(); // moves that were found to be disabled (via Imprison/Disable) to avoid retrying
+  private stealthRockSet: boolean = false; // whether Stealth Rock has been set on opponent's side
+  private spikesLayers: number = 0; // how many layers of Spikes set on opponent's side
+
+  constructor(
+    playerStream: any,
+    options: HeuristicsAIOptions = {},
+    debug = false
+  ) {
+    super(playerStream, debug);
+    this.activeTracker = { myTeam: [], opponentTeam: [] };
+    this.prng = PRNG.get(options.seed);
+    this.difficulty = options.difficulty || 3;
+  }
+
+  /**
+   * Called if our chosen action is invalid (e.g. a move was disabled or otherwise unusable).
+   * We parse the error to avoid repeating the same mistake on the next choice.
+   */
+  public receiveError(error: string): void {
+    console.warn(`AI Error: "${error}"`);
+    const [, suffix, message] = error.match(/^\[(.*?)\] (.*?): (.*)$/) || [];
+    if (suffix === "Can't move") {
+      // A move we chose cannot be used (likely disabled by Imprison/Disable).
+      // Extract the move name from the error message and mark it as disabled.
+      const disabledMoveMatch = message.match(/'s (.+) is disabled/);
+      if (disabledMoveMatch) {
+        const moveName = disabledMoveMatch[1];
+        const moveId = toID(moveName); // convert to lowercase id
+        this.disabledMoves.add(moveId);
+      }
+      // We will get a new |request| after this, and our receiveRequest will choose a different move.
+    }
+  }
+
+  /**
+   * Main entry: handle a new request from the battle engine.
+   * This covers move selection, forced switches (after KO), and team preview.
+   */
+  public receiveRequest(request: IShowdownRequest): string {
+    if (request.wait) {
+      return ``;
+    }
+    // Track weather if present in the request (some formats include weather in request).
+    if ((request as any).weather) {
+      this.currentWeather = (request as any).weather || null;
+    }
+    if (request.forceSwitch) {
+      // One of our Pokémon fainted or must switch out (e.g. U-turn effect).
+      return this.handleForceSwitch(request);
+    } else if (request.active) {
+      // It's our turn to choose a move (or possibly to mega evolve / Z-move, but we focus on move).
+      return this.chooseMove(request);
+    } else {
+      // Team Preview phase (request.teamPreview likely true)
+      return this.chooseTeamPreview(request);
+    }
+  }
+
+  /**
+   * Handle forced switch decisions (after a KO or pivoting move).
+   * We choose the best replacement Pokémon for each slot that must switch.
+   */
+  private handleForceSwitch(request: IShowdownRequest): string {
+    const side = request.side;
+    const forceSwitchSlots = request.forceSwitch || [];
+    if (!side?.pokemon) return `pass`;
+
+    const actions: string[] = [];
+    const alreadyChosen: Set<number> = new Set();
+    forceSwitchSlots.forEach((mustSwitch, slotIndex) => {
+      if (!mustSwitch) {
+        // No switch required in this slot (e.g. in doubles, the other slot might need switching).
+        actions.push(`pass`);
+        return;
+      }
+      // Determine which of our bench Pokémon can switch in (not fainted, not already active).
+      const availableMons = side.pokemon
+        .map((p, idx) => ({ mon: p, idx: idx + 1 }))
+        .filter(({ mon, idx }) => {
+          if (mon.condition.endsWith(' fnt') || mon.active) return false;
+          if (alreadyChosen.has(idx)) return false;
+          return true;
+        });
+      if (!availableMons.length) {
+        actions.push(`pass`);
+        return;
+      }
+      // Pick the best switch-in based on matchup evaluation
+      const bestSlot = this.chooseBestSwitch(
+        availableMons.map(x => x.mon),
+        request
+      );
+      alreadyChosen.add(bestSlot);
+      // Reset move history for that slot (new Pokémon coming in has no last move)
+      delete this.lastMove[slotIndex];
+      actions.push(`switch ${bestSlot}`);
+    });
+    return actions.join(', ');
+  }
+
+  /**
+   * Decide a move for each active Pokémon we have on the field.
+   */
+  private chooseMove(request: IShowdownRequest): string {
+    this.updateActiveTracker(request);
+    const side = request.side;
+    const activeSlots = request.active;
+    if (!side || !activeSlots) return `pass`;
+
+    const decisions: string[] = activeSlots.map((active, index) => {
+      const sidePoke = side.pokemon[index];
+      if (!sidePoke || sidePoke.condition.endsWith(' fnt')) {
+        return `pass`; // Pokémon is fainted (shouldn't happen in a move request normally)
+      }
+      // Get all available moves (excluding disabled or out-of-PP moves).
+      const availableMoves = this.getAvailableMoves(active);
+      if (!availableMoves.length) {
+        return `pass`; // No moves can be chosen (rare; could happen if all moves disabled => will struggle)
+      }
+
+      // Consider if we should switch out instead of attacking
+      const canSwitchTargets = this.canSwitch(request);
+      const shouldSwitch = this.shouldSwitchOut(request, index);
+      if (shouldSwitch && canSwitchTargets.length > 0) {
+        // Determine switch chance based on AI difficulty (higher difficulty => more likely to execute smart switch)
+        const switchSuccessProb = this.skillToSuccessProbability(
+          this.difficulty,
+          'switch'
+        );
+        if (this.prng.random() < switchSuccessProb) {
+          const bestSwitchSlot = this.chooseBestSwitch(
+            canSwitchTargets,
+            request
+          );
+          // Clear last move for this slot since we are switching
+          delete this.lastMove[index];
+          return `switch ${bestSwitchSlot}`;
+        }
+      }
+
+      // Occasionally attempt a Protect if beneficial (to scout or stall)
+      if (this.prng.random() < this.protectProbability) {
+        const protectMoveIndex = availableMoves.findIndex(
+          m => Dex.getActiveMove(m.id)?.id === 'protect'
+        );
+        if (protectMoveIndex >= 0 && this.lastMove[index] !== 'protect') {
+          // Use Protect (avoid double-protect attempts back-to-back)
+          this.lastMove[index] = 'protect';
+          return `move ${protectMoveIndex + 1}`;
+        }
+      }
+
+      // Otherwise, choose the best move to use
+      const moveChoice = this.chooseBestMove(availableMoves, request, index);
+      return moveChoice;
+    });
+
+    return decisions.join(', ');
+  }
+
+  /**
+   * Choose the best lead Pokémon order at team preview (if applicable).
+   * This simple implementation picks the Pokémon with the overall best matchups as lead.
+   */
+  private chooseTeamPreview(request: IShowdownRequest): string {
+    const side = request.side;
+    if (!side?.pokemon?.length || !side.foePokemon?.length) {
+      return `default`;
+    }
+    let bestLeadIndex = 0;
+    let bestLeadScore = -Infinity;
+    // Evaluate each of our team Pokémon against the opponent’s team
+    for (let i = 0; i < side.pokemon.length; i++) {
+      const candidate = side.pokemon[i];
+      if (!candidate || candidate.condition.endsWith(' fnt')) continue;
+      let totalScore = 0;
+      for (const foeMon of side.foePokemon) {
+        totalScore += this.evaluateMatchup(candidate, foeMon);
+      }
+      if (totalScore > bestLeadScore) {
+        bestLeadScore = totalScore;
+        bestLeadIndex = i;
+      }
+    }
+    // Put the best lead first, keep the rest of the order as-is
+    const teamOrder = [
+      bestLeadIndex,
+      ...Array.from({ length: side.pokemon.length }, (_, i) => i).filter(
+        x => x !== bestLeadIndex
+      ),
+    ];
+    return `team ${teamOrder.map(i => i + 1).join(',')}`;
+  }
+
+  /**
+   * Determines if we should switch out the active Pokémon at the given slot.
+   * Considers low HP, bad matchups, stat drops, etc.
+   */
+  private shouldSwitchOut(
+    request: IShowdownRequest,
+    slotIndex: number
+  ): boolean {
+    this.updateActiveTracker(request);
+    const me = this.activeTracker.myActive;
+    const foe = this.activeTracker.opponentActive;
+    if (!me || !foe) return false;
+
+    const myPokemon = me.pokemon;
+    const foePokemon = foe.pokemon;
+
+    // Avoid immediate switch back if we just switched this Pokémon in (to prevent ping-pong switching)
+    const currentTurn = (request as any).turn || 0;
+    if (
+      this.lastSwitchTurn !== null &&
+      currentTurn - this.lastSwitchTurn < this.switchLockTurns
+    ) {
+      // We switched recently; hold off on switching again so soon.
+      return false;
+    }
+    // Can't switch out if trapped by Mean Look/Shadow Tag etc. (Showdown marks Pokemon as trapped)
+    if ((myPokemon as any).trapped) {
+      return false;
+    }
+    // Emergency switch: extremely low HP and opponent is faster (to preserve the Pokémon)
+    const myHPPercent = me.currentHpPercent;
+    if (
+      myHPPercent < this.faintThresholdPercent &&
+      me.stats.spe < foe.stats.spe &&
+      this.canSwitch(request).length > 0
+    ) {
+      this.lastSwitchTurn = currentTurn;
+      return true;
+    }
+    // If the matchup is very unfavorable, consider switching
+    const matchupScore = this.evaluateMatchup(myPokemon, foePokemon);
+    if (
+      matchupScore < this.switchOutMatchupThreshold &&
+      this.canSwitch(request).length > 0
+    ) {
+      this.lastSwitchTurn = currentTurn;
+      return true;
+    }
+    // If our key offensive stats are heavily debuffed, it may be better to switch out and reset
+    if ((me.boosts.atk || 0) <= -3 && me.stats.atk >= me.stats.spa) {
+      this.lastSwitchTurn = currentTurn;
+      return true;
+    }
+    if ((me.boosts.spa || 0) <= -3 && me.stats.spa >= me.stats.atk) {
+      this.lastSwitchTurn = currentTurn;
+      return true;
+    }
+    // If HP is below a certain threshold, consider a safe switch (if not already handled by above)
+    if (
+      myHPPercent < this.hpSwitchOutThreshold &&
+      this.canSwitch(request).length > 0
+    ) {
+      this.lastSwitchTurn = currentTurn;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Select the best move from a list of available moves for a given active Pokémon.
+   * Evaluates damage (or utility) output for each move and returns the chosen move command.
+   */
+  private chooseBestMove(
+    moves: MoveOption[],
+    request: IShowdownRequest,
+    slotIndex: number
+  ): string {
+    const me = this.activeTracker.myActive;
+    const foe = this.activeTracker.opponentActive;
+    if (!me || !foe) {
+      // Default to first move if somehow we lack tracker info (shouldn't happen if updateActiveTracker was called)
+      return `move 1`;
+    }
+
+    let bestMove: MoveOption = moves[0];
+    let bestValue = -Infinity;
+    let secondBestMove: MoveOption | null = null;
+    let secondBestValue = -Infinity;
+
+    for (const moveOption of moves) {
+      const moveData = Dex.getActiveMove(moveOption.id);
+      if (!moveData) continue;
+      let moveValue = 0;
+      if (moveData.category === 'Status') {
+        // Evaluate status, hazard, or stat-boosting moves
+        moveValue = this.evaluateStatusMove(
+          moveOption,
+          me.pokemon,
+          foe.pokemon
+        );
+      } else {
+        // Offensive move: estimate damage or damage impact
+        const foeCurrentHP = this.getCurrentHP(foe.pokemon.condition);
+        const predictedDamage = this.estimateDamage(
+          moveOption,
+          me.pokemon,
+          foe.pokemon
+        );
+        // Base weight: favor moves that deal more damage
+        moveValue = predictedDamage * this.moveDamageWeight;
+        // If this move can KO the opponent from current HP, give it a significant bonus
+        if (predictedDamage >= foeCurrentHP) {
+          moveValue += 40;
+          // If opponent has a safe switch-in that is immune to this move’s type, be slightly less all-in
+          // (we reduce the bonus to avoid always going for a move that the opponent can completely nullify)
+          const moveType = moveData.type;
+          for (const oppMon of this.activeTracker.opponentTeam) {
+            if (!oppMon.condition.endsWith(' fnt')) {
+              const type1 = oppMon.types[0],
+                type2 = oppMon.types[1] || '';
+              const effectiveness =
+                Dex.getEffectiveness(moveType, type1) *
+                (type2 ? Dex.getEffectiveness(moveType, type2) : 1);
+              if (effectiveness === 0) {
+                // An opponent has an immunity to this move type
+                moveValue -= 20; // reduce the KO bonus, anticipating a possible switch
+                break;
+              }
+            }
+          }
+        }
+      }
+      // Track top two moves by value
+      if (moveValue > bestValue) {
+        secondBestValue = bestValue;
+        secondBestMove = bestMove;
+        bestValue = moveValue;
+        bestMove = moveOption;
+      } else if (moveValue > secondBestValue) {
+        secondBestValue = moveValue;
+        secondBestMove = moveOption;
+      }
+    }
+
+    // Avoid repeating the same move consecutively if a nearly-as-good alternative exists (to be less predictable)
+    if (
+      secondBestMove &&
+      bestMove.id === this.lastMove[slotIndex] &&
+      secondBestValue >= 0.9 * bestValue
+    ) {
+      bestMove = secondBestMove;
+      bestValue = secondBestValue;
+    }
+
+    // Determine target in multi-target formats (if doubles/triples, pick the best enemy target for this move)
+    const targetIndex = this.chooseMoveTarget(bestMove, request, slotIndex);
+    // Get the move index as per the request's move list (to format the command properly)
+    const moveIndex =
+      (request.active as IActivePokemonRequest[])[slotIndex].moves.findIndex(
+        m => m.id === bestMove.id
+      ) + 1;
+
+    // If the chosen move is a hazard or similar, update our internal tracking so we don’t repeat it unnecessarily
+    const chosenMoveId = Dex.getActiveMove(bestMove.id)?.id || bestMove.id;
+    if (chosenMoveId === 'stealthrock') {
+      this.stealthRockSet = true;
+    } else if (chosenMoveId === 'spikes') {
+      this.spikesLayers = Math.min(3, this.spikesLayers + 1);
+    }
+
+    // Record this move as the last move used for this slot (for repetition checks next turn)
+    this.lastMove[slotIndex] = chosenMoveId;
+
+    // Get complete move data to check target type
+    const moveData = Dex.getActiveMove(bestMove.id);
+    const isMultiActive =
+      (request.active as IActivePokemonRequest[]).length > 1;
+
+    // Return the move command string
+    if (isMultiActive) {
+      // Check if move targets self/allies or doesn't need a target
+      const isSelfTargeting =
+        moveData &&
+        (moveData.target === 'self' ||
+          moveData.target === 'allySide' ||
+          moveData.target === 'allyTeam' ||
+          moveData.target === 'allies');
+
+      // Only specify target for moves that target opponents
+      if (!isSelfTargeting) {
+        return `move ${moveIndex} ${targetIndex}`;
+      }
+    }
+
+    // For singles or self-targeting moves in doubles, don't specify target
+    return `move ${moveIndex}`;
+  }
+
+  /**
+   * Evaluate the utility of a status or non-damaging move.
+   * Returns a heuristic value representing its usefulness in the current situation.
+   */
+  private evaluateStatusMove(
+    move: MoveOption,
+    myPoke: ISidePokemonRequest,
+    foePoke: ISidePokemonRequest
+  ): number {
+    const moveData = Dex.getActiveMove(move.id);
+    if (!moveData) return 0;
+    const moveId = moveData.id;
+    const foeStatused = foePoke.status && foePoke.status !== 'none';
+    let value = 0;
+    switch (moveId) {
+      case 'willowisp':
+        // Will-O-Wisp: Valuable if foe is physical attacker, not already statused, and not immune to burn
+        if (
+          !foeStatused &&
+          foePoke.stats.atk > foePoke.stats.spa &&
+          !foePoke.types.includes('Fire')
+        ) {
+          value = 35;
+        }
+        break;
+      case 'thunderwave':
+        // Thunder Wave: Valuable if foe is faster and not statused, and is not Ground-type or Electric-type
+        if (
+          !foeStatused &&
+          foePoke.stats.spe > myPoke.stats.spe &&
+          !foePoke.types.includes('Ground') &&
+          !foePoke.types.includes('Electric')
+        ) {
+          value = 30;
+        }
+        break;
+      case 'swordsdance':
+      case 'nastyplot':
+        // Boosting moves: Only use if we haven’t boosted much yet and our Pokémon can make use of it
+        const isPhysical = moveId === 'swordsdance';
+        const currentBoost = isPhysical
+          ? myPoke.boosts.atk || 0
+          : myPoke.boosts.spa || 0;
+        const suitableAttacker = isPhysical
+          ? myPoke.stats.atk >= myPoke.stats.spa
+          : myPoke.stats.spa >= myPoke.stats.atk;
+        if (currentBoost < 2 && suitableAttacker) {
+          value = 20;
+        }
+        break;
+      case 'stealthrock':
+        // Stealth Rock: Use only if not already set on opponent’s side
+        if (!this.stealthRockSet) {
+          value = 20;
+        }
+        break;
+      case 'spikes':
+        // Spikes: Use only if we have fewer than 3 layers set on opponent’s side
+        if (this.spikesLayers < 3) {
+          value = 15;
+        }
+        break;
+      // ... other status moves like Recover, Light Screen could be evaluated if needed
+      default:
+        value = 0;
+    }
+    return value;
+  }
+
+  /**
+   * Estimate the damage an attacking Pokémon (atkSide) would deal to a defending Pokémon (defSide) using the given move.
+   * Uses a simplified version of the Pokémon damage formula, incorporating key Gen 9 factors.
+   */
+  private estimateDamage(
+    moveOption: MoveOption,
+    atkSide: ISidePokemonRequest,
+    defSide: ISidePokemonRequest
+  ): number {
+    const move = Dex.getActiveMove(moveOption.id);
+    if (!move || !move.basePower) return 0;
+    let basePower = move.basePower;
+    // Handle multi-hit moves by using average hits
+    if (move.multihit) {
+      if (Array.isArray(move.multihit)) {
+        const [minHits, maxHits] = move.multihit;
+        basePower *= (minHits + maxHits) / 2;
+      } else {
+        basePower *= move.multihit;
+      }
+    }
+
+    // Determine attack vs defense stats
+    const isPhysical = move.category === 'Physical';
+    const attackStatName: 'atk' | 'spa' = isPhysical ? 'atk' : 'spa';
+    const defenseStatName: 'def' | 'spd' = isPhysical ? 'def' : 'spd';
+    let atkStat = atkSide.stats[attackStatName];
+    let defStat = defSide.stats[defenseStatName];
+
+    // Apply stat stage boosts/drops
+    atkStat *= this.getBoostMultiplier(atkSide.boosts[attackStatName] || 0);
+    defStat *= this.getBoostMultiplier(defSide.boosts[defenseStatName] || 0);
+
+    // Attack boosting abilities (Huge Power, Pure Power double physical attack)
+    const attackerAbility = (
+      atkSide.ability ||
+      atkSide.baseAbility ||
+      ''
+    ).toLowerCase();
+    if (
+      isPhysical &&
+      (attackerAbility === 'hugepower' || attackerAbility === 'purepower')
+    ) {
+      atkStat *= 2;
+    }
+    // Apply attacker items like Choice Band/Specs that boost offense
+    const attackerItem = atkSide.item.toLowerCase();
+    if (
+      isPhysical &&
+      (attackerItem.includes('choice band') ||
+        attackerItem.includes('choiceband'))
+    ) {
+      atkStat *= 1.5;
+    }
+    if (
+      !isPhysical &&
+      (attackerItem.includes('choice specs') ||
+        attackerItem.includes('choicespecs'))
+    ) {
+      atkStat *= 1.5;
+    }
+
+    // Start damage calculation (simplified):
+    // damage = (((2 * Level / 5 + 2) * basePower * (Atk / Def)) / 50 + 2)
+    const level = (atkSide as any).level || 100;
+    let damage =
+      (((2 * level) / 5 + 2) * basePower * atkStat) / defStat / 50 + 2;
+
+    // STAB (Same Type Attack Bonus): 1.5× if move’s type matches one of attacker's types, 2× if Adaptability or similar
+    const stab = atkSide.types.includes(move.type);
+    if (stab) {
+      if (attackerAbility === 'adaptability') {
+        damage *= 2.0;
+      } else {
+        damage *= 1.5;
+      }
+    }
+    // Type effectiveness multiplier
+    let typeEffect = 1;
+    for (const defType of defSide.types) {
+      const eff = Dex.getEffectiveness(move.type, defType);
+      typeEffect *= eff;
+      damage *= eff;
+    }
+    // Weather effects: Rain boosts Water and halves Fire; Sun boosts Fire and halves Water
+    if (this.currentWeather === 'raindance') {
+      if (move.type === 'Water') damage *= 1.5;
+      if (move.type === 'Fire') damage *= 0.5;
+    } else if (this.currentWeather === 'sunnyday') {
+      if (move.type === 'Fire') damage *= 1.5;
+      if (move.type === 'Water') damage *= 0.5;
+    }
+    // Burn penalty: Physical moves from a burned Pokémon deal half damage (unless ability negates it)
+    if (isPhysical && atkSide.status === 'brn' && attackerAbility !== 'guts') {
+      damage *= 0.5;
+    }
+    // Item boosts: Life Orb (+30% damage) and Expert Belt (+20% if super-effective)
+    if (attackerItem.includes('life orb')) {
+      damage *= 1.3;
+    }
+    if (attackerItem.includes('expert belt') && typeEffect > 1) {
+      damage *= 1.2;
+    }
+    // Final random factor (use average 0.925 as no specific random value during planning; the engine will apply actual randomness)
+    damage *= 0.925;
+
+    // Ensure damage is not negative
+    if (damage < 0) damage = 0;
+    return damage;
+  }
+
+  /**
+   * Determine the target slot for a move in double/triple battles. In singles, always returns 1.
+   * Currently, this simply targets the opponent that would take the most damage from the move.
+   */
+  private chooseMoveTarget(
+    move: MoveOption,
+    request: IShowdownRequest,
+    slotIndex: number
+  ): number {
+    const foeSide = request.side?.foePokemon;
+    if (
+      !foeSide ||
+      foeSide.length === 0 ||
+      !request.active ||
+      request.active.length <= 1
+    ) {
+      return 1; // in singles, target 1 (the only opponent)
+    }
+    // Identify all active opposing Pokémon on the field
+    const activeFoes: Array<{ slot: number; foe: ISidePokemonRequest }> = [];
+    foeSide.forEach((foeMon, idx) => {
+      if (foeMon.active && !foeMon.condition.endsWith(' fnt')) {
+        activeFoes.push({ slot: idx + 1, foe: foeMon });
+      }
+    });
+    if (activeFoes.length === 0) return 1;
+    const me = this.activeTracker.myActive;
+    let bestTargetSlot = activeFoes[0].slot;
+    let highestDamage = -Infinity;
+    for (const { slot, foe } of activeFoes) {
+      const dmg = this.estimateDamage(move, me!.pokemon, foe);
+      const foeHP = this.getCurrentHP(foe.condition);
+      if (dmg >= foeHP) {
+        // If this move could KO this foe, target them immediately
+        return slot;
+      }
+      if (dmg > highestDamage) {
+        highestDamage = dmg;
+        bestTargetSlot = slot;
+      }
+    }
+    return bestTargetSlot;
+  }
+
+  /**
+   * Calculate a multiplier for a given stat boost stage.
+   * (e.g. +2 -> 1.5×, -1 -> ~0.67×, etc.)
+   */
+  private getBoostMultiplier(boost: number): number {
+    if (boost >= 0) {
+      return (2 + boost) / 2;
+    } else {
+      return 2 / (2 - boost);
+    }
+  }
+
+  /**
+   * List all Pokémon on our side that are available to switch in (not active and not fainted).
+   */
+  private canSwitch(request: IShowdownRequest): ISidePokemonRequest[] {
+    const side = request.side;
+    if (!side?.pokemon) return [];
+    return side.pokemon.filter(p => !p.active && !p.condition.endsWith(' fnt'));
+  }
+
+  /**
+   * Choose the best Pokémon from our bench to switch into battle.
+   * Uses matchup evaluation against the opponent’s current active Pokémon.
+   */
+  private chooseBestSwitch(
+    candidates: ISidePokemonRequest[],
+    request: IShowdownRequest
+  ): number {
+    const foeActive = this.activeTracker.opponentActive?.pokemon;
+    if (!foeActive) {
+      // Fallback: if no info, just pick the first valid candidate
+      const firstIdx = request.side?.pokemon.indexOf(candidates[0]) || 0;
+      return firstIdx + 1;
+    }
+    let bestScore = -Infinity;
+    let bestCandidate: ISidePokemonRequest = candidates[0];
+    for (const candidate of candidates) {
+      const score = this.evaluateMatchup(candidate, foeActive);
+      if (score > bestScore) {
+        bestScore = score;
+        bestCandidate = candidate;
+      }
+    }
+    const bestIndex = request.side?.pokemon.indexOf(bestCandidate);
+    if (bestIndex === undefined || bestIndex < 0) {
+      return 1;
+    }
+    return bestIndex + 1;
+  }
+
+  /**
+   * Evaluate how good the matchup is between `myPoke` and `foePoke`.
+   * Positive values mean an advantage for myPoke, negative means disadvantage.
+   */
+  private evaluateMatchup(
+    myPoke: ISidePokemonRequest,
+    foePoke: ISidePokemonRequest
+  ): number {
+    let score = 0;
+    // Type matchup: how my Pokémon’s STAB types fare against the foe’s types
+    const typeMultiplier = this.calculateTypeEffectiveness(
+      myPoke.types,
+      foePoke.types
+    );
+    score += typeMultiplier * this.typeMatchupWeight;
+    // Speed advantage
+    if (myPoke.stats.spe > foePoke.stats.spe) {
+      score += this.speedTierCoefficient * this.trickRoomCoefficient;
+    } else if (myPoke.stats.spe < foePoke.stats.spe) {
+      score -= this.speedTierCoefficient * this.trickRoomCoefficient;
+    }
+    // Current HP difference
+    const myHPFrac = this.getHPFraction(myPoke.condition);
+    const foeHPFrac = this.getHPFraction(foePoke.condition);
+    score +=
+      (myHPFrac - foeHPFrac) * this.hpFractionCoefficient * this.hpWeight;
+    // Stat boosts comparison
+    const myBoostSum = this.sumBoosts(myPoke.boosts);
+    const foeBoostSum = this.sumBoosts(foePoke.boosts);
+    score += myBoostSum - foeBoostSum;
+    // If foe is heavily boosted and we have an anti-boost move (like Haze), give a bonus for staying in
+    if (this.isBoosted(foePoke) && this.hasAntiBoostMoves(myPoke)) {
+      score += this.antiBoostWeight;
+    }
+    return score;
+  }
+
+  /** Sum all stat boosts for a Pokémon (to gauge overall boosted level). */
+  private sumBoosts(boosts: { [s: string]: number }): number {
+    let sum = 0;
+    for (const stat in boosts) {
+      sum += boosts[stat as keyof typeof boosts] || 0;
+    }
+    return sum;
+  }
+
+  /** Determine if a Pokémon has any significant positive boosts (above a certain threshold). */
+  private isBoosted(poke: ISidePokemonRequest): boolean {
+    const threshold = this.boostWeightCoefficient;
+    return (
+      (poke.boosts.atk || 0) > threshold ||
+      (poke.boosts.def || 0) > threshold ||
+      (poke.boosts.spa || 0) > threshold ||
+      (poke.boosts.spd || 0) > threshold ||
+      (poke.boosts.spe || 0) > threshold
+    );
+  }
+
+  /** Check if a Pokémon has moves that can negate opponent boosts (e.g. Haze, Clear Smog). */
+  private hasAntiBoostMoves(poke: ISidePokemonRequest): boolean {
+    const antiBoostMoves = ['haze', 'clearsmog', 'spectralthief'];
+    return poke.moves.some(m => antiBoostMoves.includes(toID(m)));
+  }
+
+  /** Compute combined type effectiveness of attacker’s types on defender’s types ( >1 means advantage, <1 disadvantage ). */
+  private calculateTypeEffectiveness(
+    attackerTypes: string[],
+    defenderTypes: string[]
+  ): number {
+    let mult = 1.0;
+    for (const atkType of attackerTypes) {
+      for (const defType of defenderTypes) {
+        mult *= Dex.getEffectiveness(atkType, defType);
+      }
+    }
+    return mult;
+  }
+
+  /** Helper to get current HP as a number from a condition string like "123/321" or "0 fnt". */
+  private getCurrentHP(condition: string): number {
+    // condition format: "<current>/<max> [status]" or "<current> fnt"
+    const hpPart = condition.split(' ')[0];
+    if (hpPart.includes('/')) {
+      const [curr] = hpPart.split('/');
+      return parseInt(curr) || 0;
+    }
+    // if condition is like "0 fnt"
+    const currHP = parseInt(hpPart);
+    return isNaN(currHP) ? 0 : currHP;
+  }
+
+  /** Helper to get HP fraction (current HP% of max) from condition string. */
+  private getHPFraction(condition: string): number {
+    const parts = condition.split(' ')[0].split('/');
+    if (parts.length === 2) {
+      const [curr, max] = parts;
+      const currHP = parseInt(curr),
+        maxHP = parseInt(max);
+      if (maxHP) {
+        return Math.max(0, Math.min(1, currHP / maxHP));
+      }
+    }
+    return 0;
+  }
+
+  /** Convert AI "skill" (difficulty level) into a probability of making an optimal decision in certain scenarios. */
+  private skillToSuccessProbability(
+    difficulty: number,
+    actionType: 'move' | 'switch'
+  ): number {
+    // Higher difficulty yields higher chance to choose the optimal action.
+    // For simplicity, scale difficulty (1-5) to a probability range. We can differentiate moves vs switches if needed.
+    const base = Math.max(0, Math.min(1, (difficulty - 1) / 4)); // difficulty 1 => 0, 5 => 1
+    if (actionType === 'switch') {
+      // Maybe make switching slightly less trigger-happy at lower skill
+      return base;
+    }
+    return base;
+  }
+
+  /**
+   * Update our internal tracking of active Pokémon on each side (my side and opponent’s side).
+   * This should be called at the start of decision-making to have up-to-date info.
+   */
+  private updateActiveTracker(request: IShowdownRequest): void {
+    const side = request.side;
+    if (!side) return;
+    const foeTeam = side.foePokemon;
+    // Identify our currently active Pokémon and opponent’s active Pokémon from the request data
+    const myActive = side.pokemon.find(p => p.active);
+    const oppActive = foeTeam?.find(p => p.active);
+    if (!myActive || !oppActive) {
+      // If either side has no active (shouldn't happen except maybe end of battle), just update teams
+      this.activeTracker.myActive = undefined;
+      this.activeTracker.opponentActive = undefined;
+      this.activeTracker.myTeam = side.pokemon;
+      this.activeTracker.opponentTeam = foeTeam || [];
+      return;
+    }
+    // Update my active tracker
+    this.activeTracker.myActive = {
+      pokemon: myActive,
+      currentHp: this.getCurrentHP(myActive.condition),
+      currentHpPercent: this.getHPFraction(myActive.condition),
+      boosts: myActive.boosts,
+      stats: myActive.stats,
+      currentAbility: myActive.ability || myActive.baseAbility || '',
+      currentTypes: myActive.types,
+    };
+    // Update opponent active tracker
+    this.activeTracker.opponentActive = {
+      pokemon: oppActive,
+      currentHp: this.getCurrentHP(oppActive.condition),
+      currentHpPercent: this.getHPFraction(oppActive.condition),
+      boosts: oppActive.boosts,
+      stats: oppActive.stats,
+      currentAbility: oppActive.ability || oppActive.baseAbility || '',
+      currentTypes: oppActive.types,
+    };
+    // Update full team info
+    this.activeTracker.myTeam = side.pokemon;
+    this.activeTracker.opponentTeam = foeTeam || [];
+  }
+
+  /**
+   * Filter the moves that our active Pokémon can currently use, removing disabled or depleted moves.
+   */
+  private getAvailableMoves(
+    activeRequest: IActivePokemonRequest
+  ): MoveOption[] {
+    const moves: MoveOption[] = [];
+    activeRequest.moves.forEach((move, idx) => {
+      if (move.disabled) return;
+      const moveId = move.id;
+      if (this.disabledMoves.has(moveId)) return; // avoid moves we know are disabled (Imprison/Disable)
+      if (move.pp === 0) return;
+      // Represent the move option with its id and any other needed info
+      moves.push({
+        id: moveId,
+        move: move.move,
+        pp: move.pp,
+        disabled: move.disabled,
+      });
+    });
+    return moves;
+  }
 }
+
+// Define MoveOption type to represent a move choice in the context of the AI
+type MoveOption = {
+  id: string;
+  move?: string;
+  pp?: number;
+  disabled?: boolean;
+};

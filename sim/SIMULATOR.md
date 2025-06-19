@@ -1,5 +1,4 @@
-Battle simulator
-================
+# Battle simulator
 
 Pokémon Showdown's simulator API is implemented as an `ObjectReadWriteStream` (as in [STREAMS.md](../lib/STREAMS.md)). You write player choices (strings) to it, and you read protocol messages (also strings) from it.
 
@@ -10,9 +9,9 @@ const Sim = require('pokemon-showdown');
 stream = new Sim.BattleStream();
 
 (async () => {
-    for await (const output of stream) {
-        console.log(output);
-    }
+  for await (const output of stream) {
+    console.log(output);
+  }
 })();
 
 stream.write(`>start {"formatid":"gen7randombattle"}`);
@@ -35,9 +34,7 @@ For the equivalent in your language, read your language's documentation on how t
 
 Doing this with standard IO requires a separate subprocess for each battle. Remember to add `\n` after each message you write to standard IO.
 
-
-Writing to the simulator
-------------------------
+## Writing to the simulator
 
 In a standard battle, what you write to the simulator looks something like this:
 
@@ -112,12 +109,24 @@ Sets player information:
 
 Makes a choice for a player. [Possible choices are documented in `SIM-PROTOCOL.md`][possible-choices].
 
-  [teams]: ./TEAMS.md
-  [possible-choices]: ./SIM-PROTOCOL.md#possible-choices
+```
+>forceforme POSITION|SPECIES|DETAILS|HPSTATUS|SOURCE
+```
 
+Forces a Pokémon to change its forme or evolve with precise control:
 
-Reading from the simulator
---------------------------
+- `POSITION` is the position of the Pokémon (e.g. p1a, p2b)
+- `SPECIES` is the name of the target species or forme
+- `DETAILS` contains the formatted details string for the Pokémon
+- `HPSTATUS` shows the health in the format `current/max`
+- `SOURCE` indicates what triggered the evolution (e.g. "crit" for critical hit evolution)
+
+This command is used when you need to force a Pokémon to change its forme or evolve while maintaining precise control over its details, health, and the source of the change.
+
+[teams]: ./TEAMS.md
+[possible-choices]: ./SIM-PROTOCOL.md#possible-choices
+
+## Reading from the simulator
 
 The simulator will send back messages. In a text (standard IO) stream, they're delimited by `\n\n`. In an object stream, they will just be sent as separate strings.
 
@@ -132,7 +141,7 @@ An update which should be sent to all players and spectators.
 
 [The messages the simulator sends back are documented in `SIM-PROTOCOL.md`][sim-protocol]. You can also look at a replay log for examples.
 
-  [sim-protocol]: ./SIM-PROTOCOL.md
+[sim-protocol]: ./SIM-PROTOCOL.md
 
 One message type that only appears here is `|split|PLAYERID`:
 
@@ -144,9 +153,9 @@ One message type that only appears here is `|split|PLAYERID`:
 - `SECRET` - messages for the specific player or an omniscient observer (details which may contain information about exact details of the player's set, like exact HP)
 - `PUBLIC` - message with public details suitable for display to opponents / teammates / spectators. Note that this may be empty.
 
-    sideupdate
-    PLAYERID
-    MESSAGES
+  sideupdate
+  PLAYERID
+  MESSAGES
 
 Send messages to only one player. `|split` will never appear here.
 
@@ -156,10 +165,9 @@ Note that choice requests (updates telling the player what choices they have for
 
 [Choice requests are documented in "Choice requests" in `SIM-PROTOCOL.md`][choice-requests].
 
-  [choice-requests]: ./SIM-PROTOCOL.md#choice-requests
+[choice-requests]: ./SIM-PROTOCOL.md#choice-requests
 
     end
     LOGDATA
 
 Sent at the end of a battle. `LOGDATA` is a JSON object that has various information you might find useful but are too lazy to extract from the update messages, such as turn count and winner name.
-

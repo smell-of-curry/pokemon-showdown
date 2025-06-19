@@ -1,11 +1,8 @@
-Simulator protocol
-==================
+# Simulator protocol
 
 Pokémon Showdown's simulator protocol is implemented as a newline-and-pipe-delimited text stream. For details on how to read to or write from the text stream, see [sim/SIMULATOR.md](./SIMULATOR.md).
 
-
-Receiving messages
-------------------
+## Receiving messages
 
 ### Battle initialization
 
@@ -47,7 +44,7 @@ The beginning of a battle will look something like this:
 > - `PLAYER` may also be `p3` or `p4` in 4 player battles
 > - `USERNAME` is the username
 > - `AVATAR` is the player's avatar identifier (usually a number, but other
->    values can be used for custom avatars)
+>   values can be used for custom avatars)
 > - `RATING` is the player's Elo rating in the format they're playing. This will only be displayed in rated battles and when the player is first introduced otherwise it's blank
 
 `|teamsize|PLAYER|NUMBER`
@@ -83,7 +80,7 @@ The beginning of a battle will look something like this:
 
 `|rule|RULE: DESCRIPTION`
 
-> Will appear multiple times, one for each 
+> Will appear multiple times, one for each
 
     |clearpoke
     |poke|PLAYER|DETAILS|ITEM
@@ -233,7 +230,7 @@ followed by a few messages detailing what happens after the action occurs.
 Battle actions (especially minor actions) often come with tags such as
 `|[from] EFFECT|[of] SOURCE`. `EFFECT` will be an effect (move, ability,
 item, status, etc), and `SOURCE` will be a Pokémon. These can affect the
-message or animation displayed, but do not affect anything else. Other 
+message or animation displayed, but do not affect anything else. Other
 tags include `|[still]` (suppress animation) and `|[silent]` (suppress
 message).
 
@@ -246,7 +243,7 @@ message).
 >
 > If `|[miss]` is present, the move missed.
 >
-> If `|[still]` is present, the move should not animate 
+> If `|[still]` is present, the move should not animate
 >
 > `|[anim] MOVE2` tells the client to use the animation of `MOVE2` instead
 > of `MOVE` when displaying to the client.
@@ -272,12 +269,12 @@ message).
 > `switch` means it was intentional, while `drag` means it was unintentional
 > (forced by Whirlwind, Roar, etc).
 
-`|detailschange|POKEMON|DETAILS|HP STATUS` or 
+`|detailschange|POKEMON|DETAILS|HP STATUS` or
 `|-formechange|POKEMON|SPECIES|HP STATUS`
 
-> The specified Pokémon has changed formes (via Mega Evolution, ability, etc.) 
-> to `SPECIES`. If the forme change is permanent (Mega Evolution or a 
-> Shaymin-Sky that is frozen), then `detailschange` will appear; otherwise, 
+> The specified Pokémon has changed formes (via Mega Evolution, ability, etc.)
+> to `SPECIES`. If the forme change is permanent (Mega Evolution or a
+> Shaymin-Sky that is frozen), then `detailschange` will appear; otherwise,
 > the client will send `-formechange`.
 >
 > Syntax is the same as `|switch|` above.
@@ -305,6 +302,10 @@ message).
 `|faint|POKEMON`
 
 > The Pokémon `POKEMON` has fainted.
+
+`|bag-item|PLAYER|ITEM|TARGET|MOVE`
+
+> The player `PLAYER` has used the bag item `ITEM` on the target `TARGET` and move `MOVE`. The `TARGET` can be a Pokémon position like p1a or p2b, or 'none' if the item affects the field. The `MOVE` parameter is optional and is included when the item affects a specific move of the target Pokémon.
 
 ### Minor actions
 
@@ -365,7 +366,7 @@ stat boosts are minor actions.
 
 `|-cureteam|POKEMON`
 
-> The Pokémon `POKEMON` has used a move that cures its team of status effects, 
+> The Pokémon `POKEMON` has used a move that cures its team of status effects,
 > like Heal Bell.
 
 `|-boost|POKEMON|STAT|AMOUNT`
@@ -381,8 +382,8 @@ stat boosts are minor actions.
 
 `|-setboost|POKEMON|STAT|AMOUNT`
 
-> Same as `-boost` and `-unboost`, but `STAT` is *set* to `AMOUNT` instead of
-> boosted *by* `AMOUNT`. (For example: Anger Point, Belly Drum)
+> Same as `-boost` and `-unboost`, but `STAT` is _set_ to `AMOUNT` instead of
+> boosted _by_ `AMOUNT`. (For example: Anger Point, Belly Drum)
 
 `|-swapboost|SOURCE|TARGET|STATS`
 
@@ -451,7 +452,7 @@ stat boosts are minor actions.
 
 `|-start|POKEMON|EFFECT`
 
-> A [*volatile* status](https://bulbapedia.bulbagarden.net/wiki/Status_condition#Volatile_status)
+> A [_volatile_ status](https://bulbapedia.bulbagarden.net/wiki/Status_condition#Volatile_status)
 > has been inflicted on the `POKEMON` Pokémon by `EFFECT`. (For example:
 > confusion, Taunt, Substitute).
 
@@ -460,7 +461,7 @@ stat boosts are minor actions.
 > The volatile status from `EFFECT` inflicted on the `POKEMON` Pokémon has
 > ended.
 
-`|-crit|POKEMON`
+`|-crit|POKEMON|SOURCE`
 
 > A move has dealt a critical hit against the `POKEMON`.
 
@@ -478,7 +479,7 @@ stat boosts are minor actions.
 
 `|-item|POKEMON|ITEM|[from]EFFECT`
 
-> The `ITEM` held by the `POKEMON` has been changed or revealed due to a move or 
+> The `ITEM` held by the `POKEMON` has been changed or revealed due to a move or
 > ability `EFFECT`.
 
 `|-item|POKEMON|ITEM`
@@ -553,8 +554,8 @@ stat boosts are minor actions.
 
 `|-activate|EFFECT`
 
-> A miscellaneous effect has activated. This is triggered whenever an effect could 
-> not be better described by one of the other minor messages: for example, healing 
+> A miscellaneous effect has activated. This is triggered whenever an effect could
+> not be better described by one of the other minor messages: for example, healing
 > abilities like Water Absorb simply use `-heal`.
 >
 > Items usually activate with `-end`, although items with two messages, like Berries
@@ -563,7 +564,7 @@ stat boosts are minor actions.
 
 `|-hint|MESSAGE`
 
-> Displays a message in parentheses to the client. Hint messages appear to explain and 
+> Displays a message in parentheses to the client. Hint messages appear to explain and
 > clarify why certain actions, such as Fake Out and Mat Block failing, have occurred,  
 > when there would normally be no in-game messages.
 
@@ -574,9 +575,9 @@ stat boosts are minor actions.
 
 `|-message|MESSAGE`
 
-> Displays a miscellaneous message to the client. These messages are primarily used 
-> for messages from game mods that aren't supported by the client, like rule clauses 
-> such as Sleep Clause, or other metagames with custom messages for specific scenarios. 
+> Displays a miscellaneous message to the client. These messages are primarily used
+> for messages from game mods that aren't supported by the client, like rule clauses
+> such as Sleep Clause, or other metagames with custom messages for specific scenarios.
 
 `|-combine`
 
@@ -588,6 +589,7 @@ stat boosts are minor actions.
 > (For example: Fire Pledge).
 
 `|-prepare|ATTACKER|MOVE`
+
 > The `ATTACKER` Pokémon is preparing to use a charge `MOVE` on an unknown target.
 > (For example: Dig, Fly).
 
@@ -619,9 +621,7 @@ stat boosts are minor actions.
 > The Pokémon `POKEMON` used move `MOVE` which causes a temporary effect lasting
 > the duration of the turn. (For example: Protect, Focus Punch, Roost).
 
-
-Sending decisions
------------------
+## Sending decisions
 
 Using the Pokémon Showdown client, you can specify decisions with
 `/choose CHOICE`, or, for move and switch decisions, just `/CHOICE` works as
@@ -652,6 +652,7 @@ To be exact, `CHOICE` is one of:
 
 - `team TEAMSPEC`, during Team Preview, where `TEAMSPEC` is a list of pokemon
   slots.
+
   - For instance, `team 213456` will swap the first two Pokemon and keep all
     other pokemon in order.
   - `TEAMSPEC` does not have to be all pokemon: `team 5231` might be a choice
@@ -690,9 +691,12 @@ To be exact, `CHOICE` is one of:
 
 - `switch SWITCHSPEC`, to make a switch
 
+- `bag-item ITEMSPEC`, to use a bag item
+
 `MOVESPEC` is:
 
 - `MOVESLOTSPEC` or `MOVESLOTSPEC TARGETSPEC`
+
   - `MOVESLOTSPEC` is a move name (capitalization/spacing-insensitive) or
     1-based move slot number
   - `TARGETSPEC` is a 1-based target slot number. Add a `-` in front of it to
@@ -712,6 +716,14 @@ To be exact, `CHOICE` is one of:
   - Note that if you have multiple Pokémon with the same nickname/species, using the
     nickname/species will select the first unfainted one. If you want another Pokémon,
     you'll need to specify it by slot number.
+
+`ITEMSPEC` is:
+
+- `ITEM` or `ITEM TARGETSPEC` or `ITEM MOVESPEC` or `ITEM MOVESPEC TARGETSPEC`
+  - `ITEM` is the item name (capitalization/spacing-insensitive)
+  - `TARGETSPEC` is the target specification as described in `MOVESPEC` above (for items that target a specific Pokémon)
+  - `MOVESPEC` is a move name (for items that target a specific move)
+  - The combined `MOVESPEC TARGETSPEC` format is used when an item affects a specific move of a specific Pokémon (like using PP Up on a party member's move)
 
 Once a choice has been set for all players who need to make a choice, the
 battle will continue.

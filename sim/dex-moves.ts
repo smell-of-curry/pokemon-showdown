@@ -1,6 +1,6 @@
-import {Utils} from '../lib/utils';
-import type {ConditionData} from './dex-conditions';
-import {assignMissingFields, BasicEffect, toID} from './dex-data';
+import { Utils } from '../lib/utils';
+import type { ConditionData } from './dex-conditions';
+import { assignMissingFields, BasicEffect, toID } from './dex-data';
 
 /**
  * Describes the acceptable target(s) of a move.
@@ -21,21 +21,21 @@ import {assignMissingFields, BasicEffect, toID} from './dex-data';
  * self - The move affects the user of the move.
  */
 export type MoveTarget =
-  | "adjacentAlly"
-  | "adjacentAllyOrSelf"
-  | "adjacentFoe"
-  | "all"
-  | "allAdjacent"
-  | "allAdjacentFoes"
-  | "allies"
-  | "allySide"
-  | "allyTeam"
-  | "any"
-  | "foeSide"
-  | "normal"
-  | "randomNormal"
-  | "scripted"
-  | "self";
+  | 'adjacentAlly'
+  | 'adjacentAllyOrSelf'
+  | 'adjacentFoe'
+  | 'all'
+  | 'allAdjacent'
+  | 'allAdjacentFoes'
+  | 'allies'
+  | 'allySide'
+  | 'allyTeam'
+  | 'any'
+  | 'foeSide'
+  | 'normal'
+  | 'randomNormal'
+  | 'scripted'
+  | 'self';
 
 /** Possible move flags. */
 interface MoveFlags {
@@ -79,7 +79,7 @@ interface MoveFlags {
 }
 
 export interface HitEffect {
-  onHit?: MoveEventMethods["onHit"];
+  onHit?: MoveEventMethods['onHit'];
 
   // set pokemon conditions
   boosts?: SparseBoostsTable | null;
@@ -141,7 +141,7 @@ export interface MoveEventMethods {
 
   onDisableMove?: (this: Battle, pokemon: Pokemon) => void;
 
-  onAfterHit?: CommonHandlers["VoidSourceMove"];
+  onAfterHit?: CommonHandlers['VoidSourceMove'];
   onAfterSubDamage?: (
     this: Battle,
     damage: number,
@@ -149,9 +149,9 @@ export interface MoveEventMethods {
     source: Pokemon,
     move: ActiveMove
   ) => void;
-  onAfterMoveSecondarySelf?: CommonHandlers["VoidSourceMove"];
-  onAfterMoveSecondary?: CommonHandlers["VoidMove"];
-  onAfterMove?: CommonHandlers["VoidSourceMove"];
+  onAfterMoveSecondarySelf?: CommonHandlers['VoidSourceMove'];
+  onAfterMoveSecondary?: CommonHandlers['VoidMove'];
+  onAfterMove?: CommonHandlers['VoidSourceMove'];
   onDamagePriority?: number;
   onDamage?: (
     this: Battle,
@@ -162,7 +162,7 @@ export interface MoveEventMethods {
   ) => number | boolean | null | void;
 
   /* Invoked by the global BasePower event (onEffect = true) */
-  onBasePower?: CommonHandlers["ModifierSourceMove"];
+  onBasePower?: CommonHandlers['ModifierSourceMove'];
 
   onEffectiveness?: (
     this: Battle,
@@ -171,22 +171,22 @@ export interface MoveEventMethods {
     type: string,
     move: ActiveMove
   ) => number | void;
-  onHit?: CommonHandlers["ResultMove"];
-  onHitField?: CommonHandlers["ResultMove"];
+  onHit?: CommonHandlers['ResultMove'];
+  onHitField?: CommonHandlers['ResultMove'];
   onHitSide?: (
     this: Battle,
     side: Side,
     source: Pokemon,
     move: ActiveMove
-  ) => boolean | null | "" | void;
+  ) => boolean | null | '' | void;
   onModifyMove?: (
     this: Battle,
     move: ActiveMove,
     pokemon: Pokemon,
     target: Pokemon | null
   ) => void;
-  onModifyPriority?: CommonHandlers["ModifierSourceMove"];
-  onMoveFail?: CommonHandlers["VoidMove"];
+  onModifyPriority?: CommonHandlers['ModifierSourceMove'];
+  onMoveFail?: CommonHandlers['VoidMove'];
   onModifyType?: (
     this: Battle,
     move: ActiveMove,
@@ -200,19 +200,19 @@ export interface MoveEventMethods {
     target: Pokemon,
     move: ActiveMove
   ) => void;
-  onPrepareHit?: CommonHandlers["ResultMove"];
-  onTry?: CommonHandlers["ResultSourceMove"];
-  onTryHit?: CommonHandlers["ExtResultSourceMove"];
-  onTryHitField?: CommonHandlers["ResultMove"];
+  onPrepareHit?: CommonHandlers['ResultMove'];
+  onTry?: CommonHandlers['ResultSourceMove'];
+  onTryHit?: CommonHandlers['ExtResultSourceMove'];
+  onTryHitField?: CommonHandlers['ResultMove'];
   onTryHitSide?: (
     this: Battle,
     side: Side,
     source: Pokemon,
     move: ActiveMove
-  ) => boolean | null | "" | void;
-  onTryImmunity?: CommonHandlers["ResultMove"];
-  onTryMove?: CommonHandlers["ResultSourceMove"];
-  onUseMoveMessage?: CommonHandlers["VoidSourceMove"];
+  ) => boolean | null | '' | void;
+  onTryImmunity?: CommonHandlers['ResultMove'];
+  onTryMove?: CommonHandlers['ResultSourceMove'];
+  onUseMoveMessage?: CommonHandlers['VoidSourceMove'];
 }
 
 export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
@@ -223,7 +223,7 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
   basePower: number;
   accuracy: true | number;
   pp: number;
-  category: "Physical" | "Special" | "Status";
+  category: 'Physical' | 'Special' | 'Status';
   type: string;
   priority: number;
   target: MoveTarget;
@@ -231,7 +231,7 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
   /** Hidden Power */
   realMove?: string;
 
-  damage?: number | "level" | false | null;
+  damage?: number | 'level' | false | null;
   contestType?: string;
   noPPBoosts?: boolean;
 
@@ -261,13 +261,13 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
 
   // Hit effects
   // -----------
-  ohko?: boolean | "Ice";
+  ohko?: boolean | 'Ice';
   thawsTarget?: boolean;
   heal?: number[] | null;
   forceSwitch?: boolean;
-  selfSwitch?: "copyvolatile" | "shedtail" | boolean;
+  selfSwitch?: 'copyvolatile' | 'shedtail' | boolean;
   selfBoost?: { boosts?: SparseBoostsTable };
-  selfdestruct?: "always" | "ifHit" | boolean;
+  selfdestruct?: 'always' | 'ifHit' | boolean;
   breaksProtect?: boolean;
   /**
    * Note that this is only "true" recoil. Other self-damage, like Struggle,
@@ -295,7 +295,7 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
   /**
    * Pokemon for the attack stat. Ability and Item damage modifiers still come from the real attacker.
    */
-  overrideOffensivePokemon?: "target" | "source";
+  overrideOffensivePokemon?: 'target' | 'source';
   /**
    * Physical moves use attack stat modifiers, special moves use special attack stat modifiers.
    */
@@ -303,7 +303,7 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
   /**
    * Pokemon for the defense stat. Ability and Item damage modifiers still come from the real defender.
    */
-  overrideDefensivePokemon?: "target" | "source";
+  overrideDefensivePokemon?: 'target' | 'source';
   /**
    * uses modifiers that match the new stat
    */
@@ -320,7 +320,7 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
   ignorePositiveEvasion?: boolean;
   multiaccuracy?: boolean;
   multihit?: number | number[];
-  multihitType?: "parentalbond";
+  multihitType?: 'parentalbond';
   noDamageVariance?: boolean;
   nonGhostTarget?: MoveTarget;
   pressureTarget?: MoveTarget;
@@ -348,7 +348,7 @@ export interface MoveData extends EffectData, MoveEventMethods, HitEffect {
 
 export type ModdedMoveData =
   | MoveData
-  | (Partial<Omit<MoveData, "name">> & {
+  | (Partial<Omit<MoveData, 'name'>> & {
       inherit: true;
       igniteBoosted?: boolean;
       settleBoosted?: boolean;
@@ -365,7 +365,7 @@ export interface ModdedMoveDataTable {
 }
 
 export interface Move extends Readonly<BasicEffect & MoveData> {
-  readonly effectType: "Move";
+  readonly effectType: 'Move';
 }
 
 interface MoveHitData {
@@ -385,7 +385,7 @@ interface MoveHitData {
 type MutableMove = BasicEffect & MoveData;
 export interface ActiveMove extends MutableMove {
   readonly name: string;
-  readonly effectType: "Move";
+  readonly effectType: 'Move';
   readonly id: ID;
   num: number;
   weather?: ID;
@@ -407,7 +407,7 @@ export interface ActiveMove extends MutableMove {
   negateSecondary?: boolean;
   pranksterBoosted?: boolean;
   selfDropped?: boolean;
-  selfSwitch?: "copyvolatile" | "shedtail" | boolean;
+  selfSwitch?: 'copyvolatile' | 'shedtail' | boolean;
   spreadHit?: boolean;
   statusRoll?: string;
   /** Hardcode to make Tera Stellar STAB work with multihit moves */
@@ -428,13 +428,13 @@ export interface ActiveMove extends MutableMove {
   isZOrMaxPowered?: boolean;
 }
 
-type MoveCategory = "Physical" | "Special" | "Status";
+type MoveCategory = 'Physical' | 'Special' | 'Status';
 
 export class DataMove
   extends BasicEffect
   implements Readonly<BasicEffect & MoveData>
 {
-  declare readonly effectType: "Move";
+  declare readonly effectType: 'Move';
   /** Move type. */
   readonly type: string;
   /** Move target. */
@@ -448,7 +448,7 @@ export class DataMove
   /** Will this move always or never be a critical hit? */
   declare readonly willCrit?: boolean;
   /** Can this move OHKO foes? */
-  declare readonly ohko?: boolean | "Ice";
+  declare readonly ohko?: boolean | 'Ice';
   /**
    * Base move type. This is the move type as specified by the games,
    * tracked because it often differs from the real move type.
@@ -480,7 +480,7 @@ export class DataMove
   /**
    * Pokemon for the attack stat. Ability and Item damage modifiers still come from the real attacker.
    */
-  readonly overrideOffensivePokemon?: "target" | "source";
+  readonly overrideOffensivePokemon?: 'target' | 'source';
   /**
    * Physical moves use attack stat modifiers, special moves use special attack stat modifiers.
    */
@@ -488,7 +488,7 @@ export class DataMove
   /**
    * Pokemon for the defense stat. Ability and Item damage modifiers still come from the real defender.
    */
-  readonly overrideDefensivePokemon?: "target" | "source";
+  readonly overrideDefensivePokemon?: 'target' | 'source';
   /**
    * uses modifiers that match the new stat
    */
@@ -531,7 +531,7 @@ export class DataMove
   };
   readonly flags: MoveFlags;
   /** Whether or not the user must switch after using this move. */
-  readonly selfSwitch?: "copyvolatile" | "shedtail" | boolean;
+  readonly selfSwitch?: 'copyvolatile' | 'shedtail' | boolean;
   /** Move target only used by Pressure. */
   readonly pressureTarget: MoveTarget;
   /** Move target used if the user is not a Ghost type (for Curse). */
@@ -544,7 +544,7 @@ export class DataMove
    * null = move will always silently fail
    * undefined = move does not deal fixed damage
    */
-  readonly damage: number | "level" | false | null;
+  readonly damage: number | 'level' | false | null;
   /** Whether or not this move hit multiple targets. */
   readonly spreadHit: boolean;
   /** Modifier that affects damage when multiple targets are hit. */
@@ -560,7 +560,7 @@ export class DataMove
     super(data);
 
     this.fullname = `move: ${this.name}`;
-    this.effectType = "Move";
+    this.effectType = 'Move';
     this.type = Utils.getString(data.type);
     this.target = data.target;
     this.basePower = Number(data.basePower);
@@ -584,34 +584,34 @@ export class DataMove
     this.ignoreImmunity =
       data.ignoreImmunity !== undefined
         ? data.ignoreImmunity
-        : this.category === "Status";
+        : this.category === 'Status';
     this.pp = Number(data.pp);
     this.noPPBoosts = !!data.noPPBoosts;
     this.isZ = data.isZ || false;
     this.isMax = data.isMax || false;
     this.flags = data.flags || {};
     this.selfSwitch =
-      (typeof data.selfSwitch === "string"
+      (typeof data.selfSwitch === 'string'
         ? (data.selfSwitch as ID)
         : data.selfSwitch) || undefined;
-    this.pressureTarget = data.pressureTarget || "";
-    this.nonGhostTarget = data.nonGhostTarget || "";
+    this.pressureTarget = data.pressureTarget || '';
+    this.nonGhostTarget = data.nonGhostTarget || '';
     this.ignoreAbility = data.ignoreAbility || false;
     this.damage = data.damage!;
     this.spreadHit = data.spreadHit || false;
     this.forceSTAB = !!data.forceSTAB;
     this.volatileStatus =
-      typeof data.volatileStatus === "string"
+      typeof data.volatileStatus === 'string'
         ? (data.volatileStatus as ID)
         : undefined;
 
-    if (this.category !== "Status" && !data.maxMove && this.id !== "struggle") {
+    if (this.category !== 'Status' && !data.maxMove && this.id !== 'struggle') {
       this.maxMove = { basePower: 1 };
       if (this.isMax || this.isZ) {
         // already initialized to 1
       } else if (!this.basePower) {
         this.maxMove.basePower = 100;
-      } else if (["Fighting", "Poison"].includes(this.type)) {
+      } else if (['Fighting', 'Poison'].includes(this.type)) {
         if (this.basePower >= 150) {
           this.maxMove.basePower = 100;
         } else if (this.basePower >= 110) {
@@ -646,11 +646,11 @@ export class DataMove
       }
     }
     if (
-      this.category !== "Status" &&
+      this.category !== 'Status' &&
       !data.zMove &&
       !this.isZ &&
       !this.isMax &&
-      this.id !== "struggle"
+      this.id !== 'struggle'
     ) {
       let basePower = this.basePower;
       this.zMove = {};
@@ -706,7 +706,7 @@ export class DataMove
   }
 }
 
-const EMPTY_MOVE = Utils.deepFreeze(new DataMove({ name: "", exists: false }));
+const EMPTY_MOVE = Utils.deepFreeze(new DataMove({ name: '', exists: false }));
 
 export class DexMoves {
   readonly dex: ModdedDex;
@@ -718,56 +718,59 @@ export class DexMoves {
   }
 
   get(name?: string | Move): Move {
-    if (name && typeof name !== "string") return name;
-    const id = name ? toID(name.trim()) : ("" as ID);
+    if (name && typeof name !== 'string') return name;
+    const id = name ? toID(name.trim()) : ('' as ID);
     return this.getByID(id);
   }
 
   getByID(id: ID): Move {
-	if (id === '') return EMPTY_MOVE;
-	let move = this.moveCache.get(id);
-	if (move) return move;
-	if (this.dex.data.Aliases.hasOwnProperty(id)) {
-		move = this.get(this.dex.data.Aliases[id]);
-		if (move.exists) {
-			this.moveCache.set(id, move);
-		}
-		return move;
-	}
-	if (id.startsWith('hiddenpower')) {
-		id = /([a-z]*)([0-9]*)/.exec(id)![1] as ID;
-	}
-	if (id && this.dex.data.Moves.hasOwnProperty(id)) {
-		const moveData = this.dex.data.Moves[id] as any;
-		const moveTextData = this.dex.getDescs('Moves', id, moveData);
-		move = new DataMove({
-			name: id,
-			...moveData,
-			...moveTextData,
-		});
-		if (move.gen > this.dex.gen) {
-			(move as any).isNonstandard = 'Future';
-		}
-		if (this.dex.parentMod) {
-			// If move is exactly identical to parentMod's move, reuse parentMod's copy
-			const parentMod = this.dex.mod(this.dex.parentMod);
-			if (moveData === parentMod.data.Moves[id]) {
-				const parentMove = parentMod.moves.getByID(id);
-				if (move.isNonstandard === parentMove.isNonstandard &&
-					 move.desc === parentMove.desc &&
-					 move.shortDesc === parentMove.shortDesc) {
-					move = parentMove;
-				}
-			}
-		}
-	} else {
-		move = new DataMove({
-			name: id, exists: false,
-		});
-	}
-	if (move.exists) this.moveCache.set(id, this.dex.deepFreeze(move));
-	return move;
-}
+    if (id === '') return EMPTY_MOVE;
+    let move = this.moveCache.get(id);
+    if (move) return move;
+    if (this.dex.data.Aliases.hasOwnProperty(id)) {
+      move = this.get(this.dex.data.Aliases[id]);
+      if (move.exists) {
+        this.moveCache.set(id, move);
+      }
+      return move;
+    }
+    if (id.startsWith('hiddenpower')) {
+      id = /([a-z]*)([0-9]*)/.exec(id)![1] as ID;
+    }
+    if (id && this.dex.data.Moves.hasOwnProperty(id)) {
+      const moveData = this.dex.data.Moves[id] as any;
+      const moveTextData = this.dex.getDescs('Moves', id, moveData);
+      move = new DataMove({
+        name: id,
+        ...moveData,
+        ...moveTextData,
+      });
+      if (move.gen > this.dex.gen) {
+        (move as any).isNonstandard = 'Future';
+      }
+      if (this.dex.parentMod) {
+        // If move is exactly identical to parentMod's move, reuse parentMod's copy
+        const parentMod = this.dex.mod(this.dex.parentMod);
+        if (moveData === parentMod.data.Moves[id]) {
+          const parentMove = parentMod.moves.getByID(id);
+          if (
+            move.isNonstandard === parentMove.isNonstandard &&
+            move.desc === parentMove.desc &&
+            move.shortDesc === parentMove.shortDesc
+          ) {
+            move = parentMove;
+          }
+        }
+      }
+    } else {
+      move = new DataMove({
+        name: id,
+        exists: false,
+      });
+    }
+    if (move.exists) this.moveCache.set(id, this.dex.deepFreeze(move));
+    return move;
+  }
 
   all(): readonly Move[] {
     if (this.allCache) return this.allCache;

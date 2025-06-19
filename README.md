@@ -5,9 +5,10 @@ with Minecraft Bedrocks Script API. For example use of `set` as a property name 
 most of Pokemon Showdown. Because of this all reference to `Pokemon.set` has been changed to `Pokemon.pokemonSet`.
 
 ## Current Changes:
+
 - Changed `.set` => `.pokemonSet`
 - Added `DETAILS` to `-heal` instruction.
-    This is so we can read the pokemon that is being healed by the interpreter.
+  This is so we can read the pokemon that is being healed by the interpreter.
 - Added Bag items that have a system designed to handle bag item actions.
 - Added a whole UUID system which allows pokemon to be searched easily by interpreter.
 - Added some better typing to code.
